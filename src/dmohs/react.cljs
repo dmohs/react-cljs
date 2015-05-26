@@ -2,6 +2,10 @@
   (:require [cljsjs.react :as React]))
 
 
+(defn initialize-touch-events [should-use-touch?]
+  (React.initializeTouchEvents should-use-touch?))
+
+
 (defn rlog [& args]
   (let [arr (array)]
     (doseq [x args] (.push arr x))
