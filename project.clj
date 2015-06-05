@@ -1,10 +1,15 @@
 (def build-dir (or (System/getenv "BUILD_DIR") (throw (Exception. "BUILD_DIR is not defined"))))
 
 
-(defproject dmohs/react "0.1.0"
-  :dependencies [[cljsjs/react "0.13.3-0"]
-                 [org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-3211"]]
+(defproject dmohs/react "0.1.1.1"
+  :description "A ClojureScript wrapper for React."
+  :license "http://opensource.org/licenses/MIT"
+  :url "https://github.com/dmohs/react-cljs"
+  :dependencies [
+                 [cljsjs/react "0.13.3-0"]
+                 ;; [org.clojure/clojure "1.6.0"]
+                 ;; [org.clojure/clojurescript "0.0-3211"]
+                 ]
   ;; :plugins [[lein-cljsbuild "1.0.5"]]
   ;; :hooks [leiningen.cljsbuild]
   :source-paths ["src"]
