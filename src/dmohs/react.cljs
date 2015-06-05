@@ -2,50 +2,13 @@
   (:require [dmohs.react.core :as core]))
 
 
-;;
-;; React ClojureScript Top-Level API. Follows React's Top-Level API:
-;; https://facebook.github.io/react/docs/top-level-api.html
-;;
-
-
 (defn create-class [fn-map]
-  "Creates and returns a React class from the supplied map, similar to React.createClass.
-
-Each function receives a map of values containing the current instance's properties:
-{:this instance
- :props props
- :state state ; state atom
- :refs refs ; refs atom
- :prev-props ; when appropriate
- :next-props ; when appropriate
- ...
-}
-
-Usage:
-(create-class
- {:get-default-props
-  (fn [] {:starting-value 17})
-  :get-initial-state
-  (fn [{:keys [props]}] {:value (props :starting-value)})
-  :render
-  (fn [{:keys [state]}]
-    [:div {:ref \"the-only-div\" :onClick (fn [e] (swap! state update-in [:value] inc))}
-      \"You've clicked me \" (:value @state) \" times!\"])
-  :component-did-mount
-  (fn [{:keys [refs]}]
-    (.focus (.getDOMNode (@refs \"the-only-div\"))))
-
-Note that render can return either an element (via create-element) or a vector which will be
-automatically passed to create-element.
-"
+  "See: https://github.com/dmohs/react-cljs#reactcreateclass"
   (core/create-class fn-map))
 
 
 (defn create-element
-  "Creates and returns a new ReactElement of the given type, similar to React.createElement. The
-first argument can also be a keyword (e.g., :div) which is simply converted to a string. The
-argument may also be a vector (e.g., [:div {:style {:color \"blue\"}} \"Stuff\"]) with arguments
-in the same order."
+  "See: https://github.com/dmohs/react-cljs#reactcreateelement"
   ([type-or-vec] (create-element type-or-vec nil))
   ([type-or-vec props & children]
      (apply core/create-element type-or-vec props children)))
