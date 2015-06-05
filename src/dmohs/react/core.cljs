@@ -124,6 +124,20 @@
          (when component-will-unmount (component-will-unmount (default-arg-map this)))))})))
 
 
+(def react-component-api-method-keys
+  #{:render
+    :get-initial-state
+    :get-default-props
+    :display-name
+    :component-will-mount
+    :component-did-mount
+    :component-will-receive-props
+    :should-component-update
+    :component-will-update
+    :component-did-update
+    :component-will-unmount})
+
+
 (defn create-class [fn-map]
   (let [class-def #js{}
         fn-map (wrap-fn-defs fn-map)]
@@ -173,6 +187,10 @@
                          :prev-props (.-cljsProps prevProps)
                          :prev-state (.-snapshot prevState)))))))
     (set! (. class-def -componentWillUnmount) (:component-will-unmount fn-map))
+    (let [remaining-methods (apply dissoc fn-map react-component-api-method-keys)]
+      (doseq [[k f] remaining-methods]
+        (aset class-def (name k) (fn [& args]
+                                   (this-as this (apply f (default-arg-map this) args))))))
     (React.createClass class-def)))
 
 
