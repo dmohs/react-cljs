@@ -82,25 +82,8 @@
             (apply React.createElement type js-props children)))))))
 
 
-(def react-instance-method-keys
-  #{:__reactAutoBindMap :_reactInternalInstance :childContextTypes
-    :componentDidMount :componentDidUpdate
-    :componentWillMount :componentWillReceiveProps :componentWillUnmount :componentWillUpdate
-    :constructor :context :contextTypes :forceUpdate :getChildContext :getDOMNode :getDefaultProps
-    :getInitialState :isMounted :mixins :propTypes :props :refs :render
-    :replaceProps :replaceState :setProps :setState :shouldComponentUpdate :state :statics
-    :updateComponent})
-
-
 (defn- default-arg-map [this]
-  (let [instance-method-keys (set (goog.object.getKeys this))
-        instance-method-keys (apply disj instance-method-keys
-                                    (map name react-instance-method-keys))
-        instance-method-keys (apply disj instance-method-keys
-                                    (map name #{:cljsState}))]
-    (merge
-     {:this this :props (props this) :state (state this) :refs (refs this)}
-     (reduce (fn [r k] (assoc r (keyword k) (aget this k))) {} instance-method-keys))))
+  {:this this :props (props this) :state (state this) :refs (refs this)})
 
 
 (defn- wrap-fn-defs [fn-map]
@@ -227,6 +210,13 @@
 
 (defn unmount-component-at-node [container]
   (React.unmountComponentAtNode container))
+
+
+(defn call [k instance & args]
+  (assert (keyword? k) (str "Not a keyword: " k))
+  (let [m (aget instance (name k))]
+    (assert m (str "Method not found: " k))
+    (apply m args)))
 
 
 ;; (defn pass-to [component property & prepended-arg-fns]

@@ -39,6 +39,12 @@
   (core/unmount-component-at-node container))
 
 
+(defn call
+  "Calls a method on a component instance."
+  [method-key instance & method-args]
+  (apply core/call method-key instance method-args))
+
+
 (defn enable-hot-reload!
   "Call this before re-rendering to preserve component state between renders."
   []
