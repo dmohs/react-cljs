@@ -200,8 +200,9 @@
      (when @hot-reload-enabled?
        (reset! serialized-state-queue [])
        (reset! hot-reloading? true))
-     (React.render element container callback)
-     (reset! hot-reloading? false)))
+     (let [component (React.render element container callback)]
+       (reset! hot-reloading? false)
+       component)))
 
 
 (defn create-factory [type]
