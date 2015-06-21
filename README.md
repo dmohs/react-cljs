@@ -4,7 +4,7 @@ A ClojureScript wrapper for React.
 ### Add dependency:
 
 ```clj
-[dmohs/react "0.2.3"]
+[dmohs/react "0.2.4"]
 ```
 
 ## Top-Level API
@@ -36,6 +36,14 @@ https://facebook.github.io/react/docs/top-level-api.html
       (.focus (.getDOMNode (@refs "clickable-div"))))}))
 ```
 
+or, using the `defc` macro:
+```clj
+(react/defc MyComponent
+  {:get-initial-state ...
+   :render ...
+   ...})
+```
+
 The `render` method can return either an element or a vector (as in the above example).
 
 ### React.createElement
@@ -60,7 +68,12 @@ Component specifications closely follow React's Component Specifications:
 
 https://facebook.github.io/react/docs/component-specs.html
 
-React methods are defined using Clojure naming conventions (`:get-initial-state` corresponds to `getInitialState`). Additional methods become part of the object (`:addFoo` can be called as `(.addFoo this)`).
+React methods are defined using Clojure naming conventions (`:get-initial-state` corresponds to `getInitialState`). Additional methods become part of the object, so `:add-foo` can be called like so:
+```clj
+(react/call :add-foo this "argument 1" "argument 2")
+;; or
+(react/call :add-foo (@refs "some-child") "argument 1" "argument 2")
+```
 
 Methods are passed a map with the appropriate keys defined:
 
@@ -75,6 +88,8 @@ Methods are passed a map with the appropriate keys defined:
  :next-state nextState ; "
  }
 ```
+
+For non-api methods (like `:add-foo` above), this map is the first argument before any arguments passed when calling the method using `react/call`.
 
 Modifying the `state` atom implicitly calls `this.setState`. The `refs` atom allows accessing `this.refs` as a map (e.g., `(.focus (.getDOMNode (@refs "my-text-box")))`).
 
