@@ -1,4 +1,5 @@
 (ns dmohs.react
+  (:require-macros dmohs.react)
   (:require [dmohs.react.core :as core]))
 
 
