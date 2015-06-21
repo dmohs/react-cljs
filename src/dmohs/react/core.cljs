@@ -41,9 +41,6 @@
 (def serialized-state-queue (atom []))
 
 
-(def hot-reload-enabled? (atom false))
-
-
 (def hot-reloading? (atom false))
 
 
@@ -195,9 +192,10 @@
 
 
 (defn render
-  ([element container] (render element container nil))
-  ([element container callback]
-     (when @hot-reload-enabled?
+  ([element container] (render element container nil false))
+  ([element container callback] (render element container callback false))
+  ([element container callback hot-reload?]
+     (when hot-reload?
        (reset! serialized-state-queue [])
        (reset! hot-reloading? true))
      (let [component (React.render element container callback)]

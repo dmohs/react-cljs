@@ -28,10 +28,11 @@
 
 
 (defn render
-  "Similar to React.render. If hot reloading is enabled, component state will be preserved."
-  ([element container] (render element container nil))
-  ([element container callback]
-     (core/render element container callback)))
+  "Similar to React.render. If hot-reload? is true, component state will be preserved."
+  ([element container] (render element container nil false))
+  ([element container callback] (render element container callback false))
+  ([element container callback hot-reload?]
+     (core/render element container callback hot-reload?)))
 
 
 (defn unmount-component-at-node
@@ -44,17 +45,6 @@
   "Calls a method on a component instance."
   [method-key instance & method-args]
   (apply core/call method-key instance method-args))
-
-
-(defn enable-hot-reload!
-  "Call this before re-rendering to preserve component state between renders."
-  []
-  (reset! core/hot-reload-enabled? true))
-
-
-(defn disable-hot-reload! []
-  "Stop preserving component state between renders."
-  (reset! core/hot-reload-enabled? false))
 
 
 (defn initialize-touch-events [should-use-touch?]
