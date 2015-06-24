@@ -18,7 +18,7 @@
 
 
 (defn- props [instance]
-  (let [defaults (.. instance -props -cljsDefaultProps)]
+  (let [defaults (aget instance "props" "cljsDefaultProps")]
     (if defaults
       (merge defaults (.. instance -props -cljsProps))
       (.. instance -props -cljsProps))))
