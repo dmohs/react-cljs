@@ -107,7 +107,13 @@
       (fn []
         (this-as
          this
-         (let [rendered (render (default-arg-map this))]
+         (let [rendered (if @hot-reloading?
+                          (try (render (default-arg-map this))
+                               (catch js/Object e
+                                 (.log js/window.console (.-stack e))
+                                 (create-element :div {:style {:color "red"}}
+                                                 "Render failed. See console for details.")))
+                          (render (default-arg-map this)))]
            (if (vector? rendered)
              (apply create-element rendered)
              rendered))))

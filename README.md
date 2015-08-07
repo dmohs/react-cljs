@@ -4,7 +4,7 @@ A ClojureScript wrapper for React.
 ### Add dependency:
 
 ```clj
-[dmohs/react "0.2.4"]
+[dmohs/react "0.2.6"]
 ```
 
 ## Top-Level API
