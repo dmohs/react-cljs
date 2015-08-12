@@ -217,6 +217,10 @@
   (React.unmountComponentAtNode container))
 
 
+(defn valid-element? [x]
+  (React.isValidElement x))
+
+
 (defn call [k instance & args]
   (assert (keyword? k) (str "Not a keyword: " k))
   (let [m (aget instance (name k))]

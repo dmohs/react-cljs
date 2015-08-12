@@ -41,6 +41,12 @@
   (core/unmount-component-at-node container))
 
 
+(defn valid-element?
+  "See: https://facebook.github.io/react/docs/top-level-api.html#react.isvalidelement"
+  [x]
+  (core/valid-element? x))
+
+
 (defn call
   "Calls a method on a component instance."
   [method-key instance & method-args]

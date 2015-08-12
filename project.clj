@@ -1,7 +1,7 @@
 (def build-dir (or (System/getenv "BUILD_DIR") (throw (Exception. "BUILD_DIR is not defined"))))
 
 
-(defproject dmohs/react "0.2.6"
+(defproject dmohs/react "0.2.7" ;; Also update README.md on version change.
   :description "A ClojureScript wrapper for React."
   :license "http://opensource.org/licenses/MIT"
   :url "https://github.com/dmohs/react-cljs"
