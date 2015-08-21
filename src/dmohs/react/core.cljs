@@ -17,6 +17,10 @@
   (apply rlog (map pr-str args)))
 
 
+(defn get-display-name [instance]
+  (.. instance -constructor -displayName))
+
+
 (defn- props [instance]
   (let [defaults (aget instance "props" "cljsDefaultProps")]
     (if defaults
@@ -201,12 +205,16 @@
   ([element container] (render element container nil false))
   ([element container callback] (render element container callback false))
   ([element container callback hot-reload?]
+   (when hot-reload?
+     (reset! serialized-state-queue [])
+     (reset! hot-reloading? true)
+     ;; React sometimes does not fully unmount before re-rendering. Since hot-reloading depends
+     ;; on a consistent unmount/mount order to reload the state, we need to unmount first.
+     (React.unmountComponentAtNode container))
+   (let [component (React.render element container callback)]
      (when hot-reload?
-       (reset! serialized-state-queue [])
-       (reset! hot-reloading? true))
-     (let [component (React.render element container callback)]
-       (reset! hot-reloading? false)
-       component)))
+       (reset! hot-reloading? false))
+     component)))
 
 
 (defn create-factory [type]

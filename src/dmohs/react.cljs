@@ -57,5 +57,5 @@
   (core/initialize-touch-events should-use-touch?))
 
 
-(defn- get-display-name [instance]
-  (.. instance -constructor -displayName))
+(defn get-display-name [instance]
+  (core/get-display-name instance))
