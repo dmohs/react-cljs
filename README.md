@@ -82,6 +82,8 @@ The `render` method can return either an element or a vector (as in the above ex
 (react/render element container callback hot-reload?)
 ```
 
+If `hot-reload?` is true, component state will be preserved before unmounting and loaded into the newly-rendered tree. This makes Figwheel usage quite easy. I usually pass `goog.DEBUG` as this parameter so it is automatically turned off for minimized/production builds.
+
 ### ReactDOM.unmountComponentAtNode
 
 ```clj
@@ -93,8 +95,6 @@ The `render` method can return either an element or a vector (as in the above ex
 ```clj
 (create/find-dom-node element)
 ```
-
-If `hot-reload?` is true, component state will be preserved before unmounting and loaded into the newly-rendered tree. This makes Figwheel usage quite easy. I usually pass `goog.DEBUG` as this parameter so it is automatically turned off for minimized/production builds.
 
 ## Component Specifications
 
