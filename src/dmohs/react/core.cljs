@@ -1,5 +1,7 @@
 (ns dmohs.react.core
-  (:require [cljsjs.react :as React]))
+  (:require
+   [cljsjs.react :as React]
+   [cljsjs.react.dom :as ReactDOM]))
 
 
 (defn rlog [& args]
@@ -42,14 +44,14 @@
   (Refs->Clj. instance))
 
 
+(defn- locals [instance]
+  (.-cljsLocals instance))
+
+
 (def serialized-state-queue (atom []))
 
 
 (def hot-reloading? (atom false))
-
-
-(defn initialize-touch-events [should-use-touch?]
-  (React.initializeTouchEvents should-use-touch?))
 
 
 (defn create-element
@@ -84,7 +86,7 @@
 
 
 (defn- default-arg-map [this]
-  {:this this :props (props this) :state (state this) :refs (refs this)})
+  {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)})
 
 
 (defn- wrap-fn-defs [fn-map]
@@ -95,14 +97,17 @@
       (fn []
         (this-as
          this
-         (let [initial-state (if (and @hot-reloading? (pos? (count @serialized-state-queue)))
-                               (let [s (first @serialized-state-queue)]
-                                 (swap! serialized-state-queue rest)
-                                 s)
-                               (when get-initial-state
-                                 (get-initial-state (dissoc (default-arg-map this) :refs))))
-               state-atom (atom initial-state)]
+         (let [state-atom (atom nil)
+               locals-atom (atom nil)]
            (set! (.-cljsState this) state-atom)
+           (set! (.-cljsLocals this) locals-atom)
+           (reset! state-atom
+                   (if (and @hot-reloading? (pos? (count @serialized-state-queue)))
+                     (let [s (first @serialized-state-queue)]
+                       (swap! serialized-state-queue rest)
+                       s)
+                     (when get-initial-state
+                       (get-initial-state (default-arg-map this)))))
            (add-watch state-atom ::set-state-on-update
                       (fn [k r os ns]
                         (.setState this #js{:snapshot ns})))
@@ -155,44 +160,44 @@
     ;; TODO: propTypes, mixins, statics
     (when-let [x (:get-default-props fn-map)]
       (set! (. class-def -getDefaultProps)
-            (fn [] (this-as this #js{:cljsDefaultProps (x {:this this})}))))
+            (fn [] (this-as this #js{:cljsDefaultProps (.call x this {:this this})}))))
     (when-let [x (:display-name fn-map)] (set! (. class-def -displayName) x))
     (when-let [x (:component-will-mount fn-map)]
       (set! (. class-def -componentWillMount)
-            (fn [] (this-as this (x (dissoc (default-arg-map this) :refs))))))
+            (fn [] (this-as this (.call x this (dissoc (default-arg-map this) :refs))))))
     (when-let [x (:component-did-mount fn-map)]
       (set! (. class-def -componentDidMount)
-            (fn [] (this-as this (x (default-arg-map this))))))
+            (fn [] (this-as this (.call x this (default-arg-map this))))))
     (when-let [x (:component-will-receive-props fn-map)]
       (set! (. class-def -componentWillReceiveProps)
             (fn [nextProps]
               (this-as
                this
-               (x (assoc (default-arg-map this) :next-props (.-cljsProps nextProps)))))))
+               (.call x this (assoc (default-arg-map this) :next-props (.-cljsProps nextProps)))))))
     (when-let [x (:should-component-update fn-map)]
       (set! (. class-def -shouldComponentUpdate)
             (fn [nextProps nextState]
               (this-as
                this
-               (x (assoc (default-arg-map this)
-                         :next-props (.-cljsProps nextProps)
-                         :next-state (.-snapshot nextState)))))))
+               (.call x this (assoc (default-arg-map this)
+                                    :next-props (.-cljsProps nextProps)
+                                    :next-state (.-snapshot nextState)))))))
     (when-let [x (:component-will-update fn-map)]
       (set! (. class-def -componentWillUpdate)
             (fn [nextProps nextState]
               (this-as
                this
-               (x (assoc (default-arg-map this)
-                         :next-props (.-cljsProps nextProps)
-                         :next-state (.-snapshot nextState)))))))
+               (.call x this (assoc (default-arg-map this)
+                                    :next-props (.-cljsProps nextProps)
+                                    :next-state (.-snapshot nextState)))))))
     (when-let [x (:component-did-update fn-map)]
       (set! (. class-def -componentDidUpdate)
             (fn [prevProps prevState]
               (this-as
                this
-               (x (assoc (default-arg-map this)
-                         :prev-props (.-cljsProps prevProps)
-                         :prev-state (.-snapshot prevState)))))))
+               (.call x this (assoc (default-arg-map this)
+                                    :prev-props (.-cljsProps prevProps)
+                                    :prev-state (.-snapshot prevState)))))))
     (set! (. class-def -componentWillUnmount) (:component-will-unmount fn-map))
     (let [remaining-methods (apply dissoc fn-map react-component-api-method-keys)]
       (doseq [[k f] remaining-methods]
@@ -201,38 +206,43 @@
     (React.createClass class-def)))
 
 
-(defn render
-  ([element container] (render element container nil false))
-  ([element container callback] (render element container callback false))
-  ([element container callback hot-reload?]
-   (when hot-reload?
-     (reset! serialized-state-queue [])
-     (reset! hot-reloading? true)
-     ;; React sometimes does not fully unmount before re-rendering. Since hot-reloading depends
-     ;; on a consistent unmount/mount order to reload the state, we need to unmount first.
-     (React.unmountComponentAtNode container))
-   (let [component (React.render element container callback)]
-     (when hot-reload?
-       (reset! hot-reloading? false))
-     component)))
-
-
 (defn create-factory [type]
   (React.createFactory type))
-
-
-(defn unmount-component-at-node [container]
-  (React.unmountComponentAtNode container))
 
 
 (defn valid-element? [x]
   (React.isValidElement x))
 
 
+(defn render
+  ([element container] (render element container nil false))
+  ([element container callback] (render element container callback false))
+  ([element container callback hot-reload?]
+   (when hot-reload?
+  (reset! serialized-state-queue [])
+  (reset! hot-reloading? true)
+  ;; React sometimes does not fully unmount before re-rendering. Since hot-reloading depends
+  ;; on a consistent unmount/mount order to reload the state, we need to unmount first.
+     (ReactDOM.unmountComponentAtNode container))
+   (let [component (ReactDOM.render element container callback)]
+     (when hot-reload?
+  (reset! hot-reloading? false))
+     component)))
+
+
+(defn unmount-component-at-node [container]
+  (ReactDOM.unmountComponentAtNode container))
+
+
+(defn find-dom-node [instance]
+  (ReactDOM.findDOMNode instance))
+
+
 (defn call [k instance & args]
   (assert (keyword? k) (str "Not a keyword: " k))
-  (let [m (aget instance (name k))]
-    (assert m (str "Method not found: " k))
+  (let [instance (if (= instance :this) (this-as this this) instance)
+        m (aget instance (name k))]
+    (assert m (str "Method " k " not found on component '" (get-display-name instance) "'"))
     (apply m args)))
 
 

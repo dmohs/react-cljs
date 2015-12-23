@@ -27,6 +27,17 @@
   (core/create-factory type))
 
 
+(defn valid-element?
+  "See: https://facebook.github.io/react/docs/top-level-api.html#react.isvalidelement"
+  [x]
+  (core/valid-element? x))
+
+
+;;
+;; ReactDOM
+;;
+
+
 (defn render
   "Similar to React.render. If hot-reload? is true, component state will be preserved."
   ([element container] (render element container nil false))
@@ -41,20 +52,16 @@
   (core/unmount-component-at-node container))
 
 
-(defn valid-element?
-  "See: https://facebook.github.io/react/docs/top-level-api.html#react.isvalidelement"
-  [x]
-  (core/valid-element? x))
+(defn find-dom-node
+  "See: https://facebook.github.io/react/docs/top-level-api.html#reactdom.finddomnode"
+  [instance]
+  (core/find-dom-node instance))
 
 
 (defn call
   "Calls a method on a component instance."
   [method-key instance & method-args]
   (apply core/call method-key instance method-args))
-
-
-(defn initialize-touch-events [should-use-touch?]
-  (core/initialize-touch-events should-use-touch?))
 
 
 (defn get-display-name [instance]

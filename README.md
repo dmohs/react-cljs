@@ -4,7 +4,7 @@ A ClojureScript wrapper for React.
 ### Add dependency:
 
 ```clj
-[dmohs/react "0.2.8"]
+[dmohs/react "0.2.9"]
 ```
 
 ## Top-Level API
@@ -33,7 +33,7 @@ https://facebook.github.io/react/docs/top-level-api.html
         "I have been clicked " (:click-count @state) " times."]])
     :component-did-mount
     (fn {:keys [refs]}
-      (.focus (.getDOMNode (@refs "clickable-div"))))}))
+      (.focus (@refs "clickable-div")))}))
 ```
 
 or, using the `defc` macro:
@@ -60,7 +60,41 @@ The `render` method can return either an element or a vector (as in the above ex
                        [MyComponent {:initial-click-count 15}]])
 ```
 
-### Etc.
+### React.cloneElement
+
+*Not yet implemented.*
+
+### React.createFactory
+
+```clj
+(create/create-factory string-or-react-class)
+```
+
+### React.isValidElement
+
+```clj
+(react/valid-element? x)
+```
+
+### ReactDOM.render
+
+```clj
+(react/render element container callback hot-reload?)
+```
+
+### ReactDOM.unmountComponentAtNode
+
+```clj
+(react/unmount-component-at-node container)
+```
+
+### ReactDOM.findDOMNode
+
+```clj
+(create/find-dom-node element)
+```
+
+If `hot-reload?` is true, component state will be preserved before unmounting and loaded into the newly-rendered tree. This makes Figwheel usage quite easy. I usually pass `goog.DEBUG` as this parameter so it is automatically turned off for minimized/production builds.
 
 ## Component Specifications
 
@@ -75,6 +109,11 @@ React methods are defined using Clojure naming conventions (`:get-initial-state`
 (react/call :add-foo (@refs "some-child") "argument 1" "argument 2")
 ```
 
+The special case of calling `this` can be shortened to:
+```clj
+(react/call-self :add-foo "argument 1" ...)
+```
+
 Methods are passed a map with the appropriate keys defined:
 
 ```clj
@@ -82,6 +121,7 @@ Methods are passed a map with the appropriate keys defined:
  :props props
  :state state ; state atom
  :refs refs ; refs atom
+ :locals ; a local variables atom to make (set! (.-foo this) "some value") unnecessary
  :prev-props prevProps ; when applicable
  :prev-state prevState ; "
  :next-props nextProps ; "
@@ -91,6 +131,6 @@ Methods are passed a map with the appropriate keys defined:
 
 For non-api methods (like `:add-foo` above), this map is the first argument before any arguments passed when calling the method using `react/call`.
 
-Modifying the `state` atom implicitly calls `this.setState`. The `refs` atom allows accessing `this.refs` as a map (e.g., `(.focus (.getDOMNode (@refs "my-text-box")))`).
+Modifying the `state` atom implicitly calls `this.setState`. The `refs` atom allows accessing `this.refs` as a map (e.g., `(.focus (@refs "my-text-box"))`).
 
 Note that `propTypes`, `statics`, and `mixins` are not yet implemented.
