@@ -1,10 +1,15 @@
 # react-cljs
+
 A ClojureScript wrapper for React.
+
+There are a number of React-like libraries for ClojureScript (e.g., Om, Reagent, Rum). Many use React under the covers.
+
+By contrast, this library simply exposes an interface to React in a ClojureScript-friendly way. It is for developers who, like myself, want to use React directly from a ClojureScript application.
 
 ### Add dependency:
 
 ```clj
-[dmohs/react "0.2.9"]
+[dmohs/react "0.2.10"]
 ```
 
 ## Top-Level API
@@ -37,6 +42,7 @@ https://facebook.github.io/react/docs/top-level-api.html
 ```
 
 or, using the `defc` macro:
+
 ```clj
 (react/defc MyComponent
   {:get-initial-state ...
@@ -120,8 +126,9 @@ Methods are passed a map with the appropriate keys defined:
 {:this this ; the component instance
  :props props
  :state state ; state atom
- :refs refs ; refs atom
- :locals ; a local variables atom to make (set! (.-foo this) "some value") unnecessary
+ :after-update ; [1]
+ :refs refs ; [2]
+ :locals ; [3]
  :prev-props prevProps ; when applicable
  :prev-state prevState ; "
  :next-props nextProps ; "
@@ -129,8 +136,12 @@ Methods are passed a map with the appropriate keys defined:
  }
 ```
 
-For non-api methods (like `:add-foo` above), this map is the first argument before any arguments passed when calling the method using `react/call`.
+1. This is used when you would pass a callback to `setState`, e.g., `(after-update #(.focus (react/find-dom-node this)))`.
+2. The `refs` atom allows accessing `this.refs` as a map (e.g., `(.focus (@refs "my-text-box"))`).
+3. Convenience atom for local variables. Instead of, e.g., `(set! (.-myTimer this) (js/setTimeout ...))`, you can do `(swap! locals assoc :my-timer (js/setTimeout ...))`.
 
-Modifying the `state` atom implicitly calls `this.setState`. The `refs` atom allows accessing `this.refs` as a map (e.g., `(.focus (@refs "my-text-box"))`).
+Note: for non-api methods (like `:add-foo` above), this map is the first argument before any arguments passed when calling the method using `react/call`.
+
+Modifying the `state` atom implicitly calls `this.setState`. This maintains the behavior of React's `this.state` in the way that updates (via `swap!` or `reset!`) are not visible in `@state` until after the component is re-rendered.
 
 Note that `propTypes`, `statics`, and `mixins` are not yet implemented.
