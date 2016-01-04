@@ -24,10 +24,10 @@
 
 
 (defn- props [instance]
-  (let [defaults (aget instance "props" "cljsDefaultProps")]
+  (let [defaults (aget instance "props" "cljsDefault")]
     (if defaults
-      (merge defaults (.. instance -props -cljsProps))
-      (.. instance -props -cljsProps))))
+      (merge defaults (.. instance -props -cljs))
+      (.. instance -props -cljs))))
 
 
 (defn- atom-like-state-swap! [instance & swap-args]
@@ -106,7 +106,7 @@
                 ref (props :ref)
                 key (props :key)
                 props (dissoc props :ref :key)]
-            (set! (.. js-props -cljsProps) props)
+            (set! (.. js-props -cljs) props)
             (when ref (set! (.. js-props -ref) ref))
             (when key (set! (.. js-props -key) key))
             (apply React.createElement type js-props children)))))))
@@ -186,7 +186,7 @@
     ;; TODO: propTypes, mixins, statics
     (when-let [x (:get-default-props fn-map)]
       (set! (. class-def -getDefaultProps)
-            (fn [] (this-as this #js{:cljsDefaultProps (.call x this {:this this})}))))
+            (fn [] (this-as this #js{:cljsDefault (.call x this {:this this})}))))
     (when-let [x (:display-name fn-map)] (set! (. class-def -displayName) x))
     (when-let [x (:component-will-mount fn-map)]
       (set! (. class-def -componentWillMount)
@@ -199,14 +199,14 @@
             (fn [nextProps]
               (this-as
                this
-               (.call x this (assoc (default-arg-map this) :next-props (.-cljsProps nextProps)))))))
+               (.call x this (assoc (default-arg-map this) :next-props (.-cljs nextProps)))))))
     (when-let [x (:should-component-update fn-map)]
       (set! (. class-def -shouldComponentUpdate)
             (fn [nextProps nextState]
               (this-as
                this
                (.call x this (assoc (default-arg-map this)
-                                    :next-props (.-cljsProps nextProps)
+                                    :next-props (.-cljs nextProps)
                                     :next-state (.-cljs nextState)))))))
     (when-let [x (:component-will-update fn-map)]
       (set! (. class-def -componentWillUpdate)
@@ -214,7 +214,7 @@
               (this-as
                this
                (.call x this (assoc (default-arg-map this)
-                                    :next-props (.-cljsProps nextProps)
+                                    :next-props (.-cljs nextProps)
                                     :next-state (.-cljs nextState)))))))
     (when-let [x (:component-did-update fn-map)]
       (set! (. class-def -componentDidUpdate)
@@ -222,7 +222,7 @@
               (this-as
                this
                (.call x this (assoc (default-arg-map this)
-                                    :prev-props (.-cljsProps prevProps)
+                                    :prev-props (.-cljs prevProps)
                                     :prev-state (.-cljs prevState)))))))
     (set! (. class-def -componentWillUnmount) (:component-will-unmount fn-map))
     (let [remaining-methods (apply dissoc fn-map react-component-api-method-keys)]
