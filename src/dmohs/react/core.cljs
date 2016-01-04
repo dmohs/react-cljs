@@ -30,8 +30,35 @@
       (.. instance -props -cljsProps))))
 
 
+(defn- atom-like-state-swap! [instance & swap-args]
+  (let [new-value (apply swap! (.. instance -cljsState) swap-args)]
+    (.setState instance #js{:cljs new-value})
+    (when-let [on-state-change (:on-state-change (props instance))]
+      (on-state-change new-value))
+    new-value))
+
+
+(deftype AtomLikeState [instance]
+  IDeref
+  (-deref [this]
+    (when-let [state (.. instance -state)]
+      (.. state -cljs)))
+  ISwap
+  (-swap! [this f] (atom-like-state-swap! instance f))
+  (-swap! [this f a] (atom-like-state-swap! instance f a))
+  (-swap! [this f a b] (atom-like-state-swap! instance f a b))
+  (-swap! [this f a b xs] (apply atom-like-state-swap! instance f a b xs))
+  IReset
+  (-reset! [this new-value]
+    (reset! (.. instance -cljsState) new-value)
+    (.setState instance #js{:cljs new-value})
+    (when-let [on-state-change (:on-state-change (props instance))]
+      (on-state-change new-value))
+    new-value))
+
+
 (defn- state [instance]
-  (.-cljsState instance))
+  (AtomLikeState. instance))
 
 
 (deftype Refs->Clj [instance]
@@ -86,7 +113,8 @@
 
 
 (defn- default-arg-map [this]
-  {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)})
+  {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)
+   :after-update (fn [callback] (.setState this #js{} callback))})
 
 
 (defn- wrap-fn-defs [fn-map]
@@ -97,21 +125,20 @@
       (fn []
         (this-as
          this
-         (let [state-atom (atom nil)
-               locals-atom (atom nil)]
-           (set! (.-cljsState this) state-atom)
-           (set! (.-cljsLocals this) locals-atom)
-           (reset! state-atom
-                   (if (and @hot-reloading? (pos? (count @serialized-state-queue)))
+         (let [locals-atom (atom nil)
+               state (if (and @hot-reloading? (pos? (count @serialized-state-queue)))
                      (let [s (first @serialized-state-queue)]
                        (swap! serialized-state-queue rest)
                        s)
                      (when get-initial-state
-                       (get-initial-state (default-arg-map this)))))
-           (add-watch state-atom ::set-state-on-update
-                      (fn [k r os ns]
-                        (.setState this #js{:snapshot ns})))
-           #js{:snapshot @state-atom})))
+                         (get-initial-state (default-arg-map this))))]
+           (set! (.-cljsLocals this) locals-atom)
+           (set! (.. this -cljsState) (atom state))
+           (when-let [on-state-change (:on-state-change (props this))]
+             ;; This is during a render and usually called by something that will update its own
+             ;; state (causing a re-render), so to be safe we report it after the event loop.
+             (js/setTimeout #(on-state-change state) 0))
+           #js{:cljs state})))
       :render
       (fn []
         (this-as
@@ -130,7 +157,6 @@
       (fn []
         (this-as
          this
-         (remove-watch (state this) ::set-state-on-update)
          (when @hot-reloading?
            (swap! serialized-state-queue conj @(state this)))
          (when component-will-unmount (component-will-unmount (default-arg-map this)))))})))
@@ -181,7 +207,7 @@
                this
                (.call x this (assoc (default-arg-map this)
                                     :next-props (.-cljsProps nextProps)
-                                    :next-state (.-snapshot nextState)))))))
+                                    :next-state (.-cljs nextState)))))))
     (when-let [x (:component-will-update fn-map)]
       (set! (. class-def -componentWillUpdate)
             (fn [nextProps nextState]
@@ -189,7 +215,7 @@
                this
                (.call x this (assoc (default-arg-map this)
                                     :next-props (.-cljsProps nextProps)
-                                    :next-state (.-snapshot nextState)))))))
+                                    :next-state (.-cljs nextState)))))))
     (when-let [x (:component-did-update fn-map)]
       (set! (. class-def -componentDidUpdate)
             (fn [prevProps prevState]
@@ -197,7 +223,7 @@
                this
                (.call x this (assoc (default-arg-map this)
                                     :prev-props (.-cljsProps prevProps)
-                                    :prev-state (.-snapshot prevState)))))))
+                                    :prev-state (.-cljs prevState)))))))
     (set! (. class-def -componentWillUnmount) (:component-will-unmount fn-map))
     (let [remaining-methods (apply dissoc fn-map react-component-api-method-keys)]
       (doseq [[k f] remaining-methods]
