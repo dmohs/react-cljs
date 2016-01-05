@@ -1,5 +1,5 @@
 (ns dmohs.react
-  (:require-macros dmohs.react)
+  (:require-macros [dmohs.react :refer [defc]])
   (:require [dmohs.react.core :as core]))
 
 
@@ -66,3 +66,31 @@
 
 (defn get-display-name [instance]
   (core/get-display-name instance))
+
+
+;;
+;; Devcards Helpers
+;;
+
+
+(defc DevcardsComponent
+  "Protects children from getting re-rendered when reporting state via the data-atom."
+  {:render
+   (fn [{:keys [this]}]
+     [:div {}
+      (.. this -props -children)])
+   :should-component-update
+   (fn [{:keys [props next-props]}]
+     (not= (dissoc props :state) (dissoc next-props :state)))})
+
+
+(defn wrap-devcard-fn [f]
+  "Pass a single function that takes three parameters: data-atom, owner, and devcard-props. Merge
+   devcard-props with your component's props to preserve and view the component's state, even across
+   figwheel reloads."
+  (fn [data-atom owner]
+    (create-element
+     DevcardsComponent
+     @data-atom
+     (f data-atom owner {:initial-state-override (:state @data-atom)
+                         :on-state-change #(swap! data-atom assoc :state %)}))))

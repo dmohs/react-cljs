@@ -127,11 +127,12 @@
          this
          (let [locals-atom (atom nil)
                state (if (and @hot-reloading? (pos? (count @serialized-state-queue)))
-                     (let [s (first @serialized-state-queue)]
-                       (swap! serialized-state-queue rest)
-                       s)
-                     (when get-initial-state
-                         (get-initial-state (default-arg-map this))))]
+                       (let [s (first @serialized-state-queue)]
+                         (swap! serialized-state-queue rest)
+                         s)
+                       (when get-initial-state
+                         (get-initial-state (default-arg-map this))))
+               state (merge state (:initial-state-override (props this)))]
            (set! (.-cljsLocals this) locals-atom)
            (set! (.. this -cljsState) (atom state))
            (when-let [on-state-change (:on-state-change (props this))]
