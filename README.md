@@ -9,7 +9,7 @@ By contrast, this library simply exposes an interface to React in a ClojureScrip
 ### Add dependency:
 
 ```clj
-[dmohs/react "0.2.10"]
+[dmohs/react "0.2.11"]
 ```
 
 ## Top-Level API
