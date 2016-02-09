@@ -76,12 +76,21 @@
 (defc DevcardsComponent
   "Protects children from getting re-rendered when reporting state via the data-atom."
   {:render
-   (fn [{:keys [this]}]
-     [:div {}
-      (.. this -props -children)])
+   (fn [{:keys [props locals]}]
+     (let [data-atom (:data-atom props)
+           f (:render-fn props)]
+       (f data-atom (:owner props) {:initial-state-override (:state @data-atom)
+                                    :on-state-change
+                                    (fn [new-state]
+                                      (swap! locals assoc :suppress-next-update? true)
+                                      (swap! data-atom assoc :state new-state))})))
    :should-component-update
-   (fn [{:keys [props next-props]}]
-     (not= (dissoc props :state) (dissoc next-props :state)))})
+   (fn [{:keys [locals]}]
+     (if (:suppress-next-update? @locals)
+       (do
+         (swap! locals assoc :suppress-next-update? false)
+         false)
+       true))})
 
 
 (defn wrap-devcard-fn [f]
@@ -89,8 +98,4 @@
    devcard-props with your component's props to preserve and view the component's state, even across
    figwheel reloads."
   (fn [data-atom owner]
-    (create-element
-     DevcardsComponent
-     @data-atom
-     (f data-atom owner {:initial-state-override (:state @data-atom)
-                         :on-state-change #(swap! data-atom assoc :state %)}))))
+    (create-element DevcardsComponent {:data-atom data-atom :owner owner :render-fn f})))

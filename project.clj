@@ -1,4 +1,4 @@
-(defproject dmohs/react "0.2.11" ;; Also update README.md on version change.
+(defproject dmohs/react "0.2.12" ;; Also update README.md on version change.
   :description "A ClojureScript wrapper for React."
   :license "http://opensource.org/licenses/MIT"
   :url "https://github.com/dmohs/react-cljs"

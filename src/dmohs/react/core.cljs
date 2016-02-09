@@ -24,17 +24,23 @@
 
 
 (defn- props [instance]
-  (let [defaults (aget instance "props" "cljsDefault")]
+  (let [defaults (.. instance -props -cljsDefault)]
     (if defaults
       (merge defaults (.. instance -props -cljs))
       (.. instance -props -cljs))))
 
 
+(defn- maybe-report-state-change [instance new-state]
+  (when-let [on-state-change (:on-state-change (props instance))]
+    ;; This is sometimes called during a render and often called by something that will update its
+    ;; own state (causing a re-render), so to be safe we report it after the event loop.
+    (js/setTimeout #(on-state-change new-state) 0)))
+
+
 (defn- atom-like-state-swap! [instance & swap-args]
   (let [new-value (apply swap! (.. instance -cljsState) swap-args)]
     (.setState instance #js{:cljs new-value})
-    (when-let [on-state-change (:on-state-change (props instance))]
-      (on-state-change new-value))
+    (maybe-report-state-change instance new-value)
     new-value))
 
 
@@ -52,8 +58,7 @@
   (-reset! [this new-value]
     (reset! (.. instance -cljsState) new-value)
     (.setState instance #js{:cljs new-value})
-    (when-let [on-state-change (:on-state-change (props instance))]
-      (on-state-change new-value))
+    (maybe-report-state-change instance new-value)
     new-value))
 
 
@@ -135,10 +140,7 @@
                state (merge state (:initial-state-override (props this)))]
            (set! (.-cljsLocals this) locals-atom)
            (set! (.. this -cljsState) (atom state))
-           (when-let [on-state-change (:on-state-change (props this))]
-             ;; This is during a render and usually called by something that will update its own
-             ;; state (causing a re-render), so to be safe we report it after the event loop.
-             (js/setTimeout #(on-state-change state) 0))
+           (maybe-report-state-change this state)
            #js{:cljs state})))
       :render
       (fn []

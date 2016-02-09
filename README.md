@@ -9,8 +9,16 @@ By contrast, this library simply exposes an interface to React in a ClojureScrip
 ### Add dependency:
 
 ```clj
-[dmohs/react "0.2.11"]
+[dmohs/react "0.2.12"]
 ```
+
+### Quickstart Template:
+
+```bash
+lein new dmohs.cljs-react my-project
+```
+
+See [dmohs.cljs-react template](https://github.com/dmohs/cljs-react-template) for usage.
 
 ## Top-Level API
 
