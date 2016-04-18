@@ -1,22 +1,12 @@
 (ns dmohs.react.core
   (:require
    [cljsjs.react :as React]
-   [cljsjs.react.dom :as ReactDOM]))
+   [cljsjs.react.dom :as ReactDOM]
+   [dmohs.react.common :as common]))
 
 
-(defn rlog [& args]
-  (let [arr (array)]
-    (doseq [x args] (.push arr x))
-    (js/console.log.apply js/console arr))
-  (last args))
-
-
-(defn jslog [& args]
-  (apply rlog (map clj->js args)))
-
-
-(defn cljslog [& args]
-  (apply rlog (map pr-str args)))
+;; TODO: debug data for React Chrome plugin (store js version of state and props)
+;; TOOD: debug component method calls
 
 
 (defn get-display-name [instance]
@@ -80,12 +70,6 @@
   (.-cljsLocals instance))
 
 
-(def serialized-state-queue (atom []))
-
-
-(def hot-reloading? (atom false))
-
-
 (defn create-element
   [type-or-vec props & children]
   (if (vector? type-or-vec)
@@ -122,117 +106,143 @@
    :after-update (fn [callback] (.setState this #js{} callback))})
 
 
-(defn- wrap-fn-defs [fn-map]
-  (let [{:keys [get-initial-state render component-will-unmount]} fn-map]
-    (merge
+(defn call [k instance & args]
+  (assert (keyword? k) (str "Not a keyword: " k))
+  (let [m (aget instance (name k))]
+    (assert m (str "Method " k " not found on component '" (get-display-name instance) "'"))
+    (.apply m instance (to-array args))))
+
+
+(defn- wrap-non-react-methods [fn-map]
+  (let [non-react-methods (apply dissoc fn-map common/react-component-api-method-keys)]
+    (reduce-kv
+     (fn [r k f]
+       (assoc r k (fn [& args] (this-as this (apply f (default-arg-map this) args)))))
      fn-map
-     {:get-initial-state
-      (fn []
-        (this-as
-         this
-         (let [locals-atom (atom nil)
-               state (if (and @hot-reloading? (pos? (count @serialized-state-queue)))
-                       (let [s (first @serialized-state-queue)]
-                         (swap! serialized-state-queue rest)
-                         s)
-                       (when get-initial-state
-                         (get-initial-state (default-arg-map this))))
-               state (merge state (:initial-state-override (props this)))]
-           (set! (.-cljsLocals this) locals-atom)
-           (set! (.. this -cljsState) (atom state))
-           (maybe-report-state-change this state)
-           #js{:cljs state})))
-      :render
-      (fn []
-        (this-as
-         this
-         (let [rendered (if @hot-reloading?
-                          (try (render (default-arg-map this))
-                               (catch js/Object e
-                                 (.log js/window.console (.-stack e))
-                                 (create-element :div {:style {:color "red"}}
-                                                 "Render failed. See console for details.")))
-                          (render (default-arg-map this)))]
-           (if (vector? rendered)
-             (apply create-element rendered)
-             rendered))))
-      :component-will-unmount
-      (fn []
-        (this-as
-         this
-         (when @hot-reloading?
-           (swap! serialized-state-queue conj @(state this)))
-         (when component-will-unmount (component-will-unmount (default-arg-map this)))))})))
+     non-react-methods)))
 
 
-(def react-component-api-method-keys
-  #{:render
-    :get-initial-state
-    :get-default-props
-    :display-name
-    :component-will-mount
-    :component-did-mount
-    :component-will-receive-props
-    :should-component-update
-    :component-will-update
-    :component-did-update
-    :component-will-unmount})
+(defn- wrap-get-initial-state [fn-map]
+  ;; Initialize the component here since this is the first method called.
+  (let [{:keys [get-initial-state]} fn-map
+        wrapped (fn []
+                  (this-as
+                   this
+                   (let [state (when get-initial-state (get-initial-state (default-arg-map this)))
+                         state (merge state (:initial-state-override (props this)))]
+                     (if (.. this -cljsState)
+                       ;; State already exists. Component was probably hot-reloaded,
+                       ;; so don't initialize.
+                       #js{:cljs state}
+                       (let [locals-atom (atom nil)]
+                         (set! (.-cljsLocals this) locals-atom)
+                         (set! (.. this -cljsState) (atom state))
+                         (maybe-report-state-change this state)
+                         #js{:cljs state})))))]
+    (assoc fn-map :get-initial-state wrapped)))
+
+
+(defn- wrap-render [fn-map]
+  (let [{:keys [render]} fn-map
+        wrapped (fn []
+                  (this-as
+                   this
+                   (let [rendered (try (render (default-arg-map this))
+                                    (catch js/Object e
+                                      (.log js/window.console (.-stack e))
+                                      (create-element :div {:style {:color "red"}}
+                                                      "Render failed. See console for details.")))]
+                     (if (vector? rendered)
+                       (apply create-element rendered)
+                       rendered))))]
+    (assoc fn-map :render wrapped)))
+
+
+(defn- wrap-if-present [fn-map k create-wrapper]
+  (if-let [f (get fn-map k)]
+    (assoc fn-map k (create-wrapper f))
+    fn-map))
+
+
+(defn- create-default-wrapper [f]
+  (fn [] (this-as this (.call f this (default-arg-map this)))))
+
+
+(defn wrap-fn-defs [fn-map]
+  ;; TODO: propTypes, mixins, statics
+  (-> fn-map
+      wrap-non-react-methods
+      wrap-get-initial-state wrap-render
+      (wrap-if-present
+       :get-default-props
+       (fn [f] (fn [] (this-as this #js{:cljsDefault (.call f this {:this this})}))))
+      (wrap-if-present :component-will-mount create-default-wrapper)
+      (wrap-if-present :component-did-mount create-default-wrapper)
+      (wrap-if-present
+       :component-will-receive-props
+       (fn [f]
+         (fn [nextProps]
+           (this-as
+            this
+            (.call f this (assoc (default-arg-map this) :next-props (.-cljs nextProps)))))))
+      (wrap-if-present
+       :should-component-update
+       (fn [f]
+         (fn [nextProps nextState]
+           (this-as
+            this
+            (.call f this (assoc (default-arg-map this)
+                                 :next-props (.-cljs nextProps)
+                                 :next-state (.-cljs nextState)))))))
+      (wrap-if-present
+       :component-will-update
+       (fn [f]
+         (fn [nextProps nextState]
+           (this-as
+            this
+            (.call f this (assoc (default-arg-map this)
+                                 :next-props (.-cljs nextProps)
+                                 :next-state (.-cljs nextState)))))))
+      (wrap-if-present
+       :component-did-update
+       (fn [f]
+         (fn [prevProps prevState]
+           (this-as
+            this
+            (.call f this (assoc (default-arg-map this)
+                                 :prev-props (.-cljs prevProps)
+                                 :prev-state (.-cljs prevState)))))))
+      (wrap-if-present :component-will-unmount create-default-wrapper)))
+
+
+(defn create-camel-cased-react-method-wrapper [k]
+  ;; For the normal lifecycle methods, we just bounce the call to the similarly-named instance
+  ;; method.
+  (fn [& args]
+    (this-as
+     this
+     (let [proto (if (= k :get-default-props)
+                   (.-prototype this)
+                   (.getPrototypeOf js/Object this))]
+       (.apply (aget proto (name k)) this (to-array args))))))
 
 
 (defn create-class [fn-map]
-  (let [class-def #js{}
-        fn-map (wrap-fn-defs fn-map)]
-    ;; https://facebook.github.io/react/docs/component-specs.html
-    ;; Order is the same as the above documentation.
-    (set! (. class-def -render) (:render fn-map))
-    (set! (. class-def -getInitialState) (:get-initial-state fn-map))
-    ;; TODO: propTypes, mixins, statics
-    (when-let [x (:get-default-props fn-map)]
-      (set! (. class-def -getDefaultProps)
-            (fn [] (this-as this #js{:cljsDefault (.call x this {:this this})}))))
-    (when-let [x (:display-name fn-map)] (set! (. class-def -displayName) x))
-    (when-let [x (:component-will-mount fn-map)]
-      (set! (. class-def -componentWillMount)
-            (fn [] (this-as this (.call x this (dissoc (default-arg-map this) :refs))))))
-    (when-let [x (:component-did-mount fn-map)]
-      (set! (. class-def -componentDidMount)
-            (fn [] (this-as this (.call x this (default-arg-map this))))))
-    (when-let [x (:component-will-receive-props fn-map)]
-      (set! (. class-def -componentWillReceiveProps)
-            (fn [nextProps]
-              (this-as
-               this
-               (.call x this (assoc (default-arg-map this) :next-props (.-cljs nextProps)))))))
-    (when-let [x (:should-component-update fn-map)]
-      (set! (. class-def -shouldComponentUpdate)
-            (fn [nextProps nextState]
-              (this-as
-               this
-               (.call x this (assoc (default-arg-map this)
-                                    :next-props (.-cljs nextProps)
-                                    :next-state (.-cljs nextState)))))))
-    (when-let [x (:component-will-update fn-map)]
-      (set! (. class-def -componentWillUpdate)
-            (fn [nextProps nextState]
-              (this-as
-               this
-               (.call x this (assoc (default-arg-map this)
-                                    :next-props (.-cljs nextProps)
-                                    :next-state (.-cljs nextState)))))))
-    (when-let [x (:component-did-update fn-map)]
-      (set! (. class-def -componentDidUpdate)
-            (fn [prevProps prevState]
-              (this-as
-               this
-               (.call x this (assoc (default-arg-map this)
-                                    :prev-props (.-cljs prevProps)
-                                    :prev-state (.-cljs prevState)))))))
-    (set! (. class-def -componentWillUnmount) (:component-will-unmount fn-map))
-    (let [remaining-methods (apply dissoc fn-map react-component-api-method-keys)]
-      (doseq [[k f] remaining-methods]
-        (aset class-def (name k) (fn [& args]
-                                   (this-as this (apply f (default-arg-map this) args))))))
-    (React.createClass class-def)))
+  (let [class-def #js{:autobind false}]
+    (doseq [[k f] fn-map]
+      (aset class-def (name k) f)
+      ;; React, being Javascript, likes camel-case.
+      (when (contains? (disj common/react-component-api-method-keys :render) k)
+        (aset class-def (common/kw->camel k)
+              (if (= k :display-name)
+                f
+                (create-camel-cased-react-method-wrapper k)))))
+    (let [class (React.createClass class-def)]
+      (extend-type class
+        IFn
+        (-invoke ([this method-keyword & args]
+                  (apply call method-keyword this args))))
+      class)))
 
 
 (defn create-factory [type]
@@ -244,19 +254,8 @@
 
 
 (defn render
-  ([element container] (render element container nil false))
-  ([element container callback] (render element container callback false))
-  ([element container callback hot-reload?]
-   (when hot-reload?
-  (reset! serialized-state-queue [])
-  (reset! hot-reloading? true)
-  ;; React sometimes does not fully unmount before re-rendering. Since hot-reloading depends
-  ;; on a consistent unmount/mount order to reload the state, we need to unmount first.
-     (ReactDOM.unmountComponentAtNode container))
-   (let [component (ReactDOM.render element container callback)]
-     (when hot-reload?
-  (reset! hot-reloading? false))
-     component)))
+  ([element container] (ReactDOM.render element container))
+  ([element container callback] (ReactDOM.render element container callback)))
 
 
 (defn unmount-component-at-node [container]
@@ -265,14 +264,6 @@
 
 (defn find-dom-node [instance]
   (ReactDOM.findDOMNode instance))
-
-
-(defn call [k instance & args]
-  (assert (keyword? k) (str "Not a keyword: " k))
-  (let [instance (if (= instance :this) (this-as this this) instance)
-        m (aget instance (name k))]
-    (assert m (str "Method " k " not found on component '" (get-display-name instance) "'"))
-    (apply m args)))
 
 
 ;; (defn pass-to [component property & prepended-arg-fns]

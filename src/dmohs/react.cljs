@@ -5,7 +5,7 @@
 
 (defn create-class [fn-map]
   "See: https://github.com/dmohs/react-cljs#reactcreateclass"
-  (core/create-class fn-map))
+  (core/create-class (core/wrap-fn-defs fn-map)))
 
 
 (defn create-element
@@ -39,11 +39,9 @@
 
 
 (defn render
-  "Similar to React.render. If hot-reload? is true, component state will be preserved."
-  ([element container] (render element container nil false))
-  ([element container callback] (render element container callback false))
-  ([element container callback hot-reload?]
-     (core/render element container callback hot-reload?)))
+  "Similar to React.render."
+  ([element container] (core/render element container))
+  ([element container callback] (core/render element container callback)))
 
 
 (defn unmount-component-at-node
