@@ -4,8 +4,14 @@
 
 
 (defn create-class [fn-map]
-  "See: https://github.com/dmohs/react-cljs#reactcreateclass"
+  "See: https://github.com/dmohs/react-cljs#reactcreateclass
+   If :trace? is true, component method calls will be printed to the console."
   (core/create-class (core/wrap-fn-defs fn-map)))
+
+
+(defn set-trace-count-limit! [limit]
+  "If this limit is exceeded while tracing, an error will be thrown. Set to nil for no limit."
+  (set! core/trace-count-limit limit))
 
 
 (defn create-element

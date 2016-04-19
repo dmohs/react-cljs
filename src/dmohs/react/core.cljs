@@ -6,9 +6,6 @@
    [dmohs.react.common :as common]))
 
 
-;; TOOD: debug component method calls
-
-
 (defn get-display-name [instance]
   (.. instance -constructor -displayName))
 
@@ -102,11 +99,6 @@
           (apply React.createElement type js-props children))))))
 
 
-(defn- default-arg-map [this]
-  {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)
-   :after-update (fn [callback] (.setState this #js{} callback))})
-
-
 (defn call [k instance & args]
   (assert (keyword? k) (str "Not a keyword: " k))
   (let [m (aget instance (name k))]
@@ -114,22 +106,77 @@
     (.apply m instance (to-array args))))
 
 
-(defn- wrap-non-react-methods [fn-map]
+(defn- default-arg-map [this]
+  {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)
+   :after-update (fn [callback] (.setState this #js{} callback))})
+
+
+(defn- arg-map->js [arg-map]
+  (clj->js (merge arg-map
+                  (when-let [x (:state arg-map)] {:state @x})
+                  (when-let [x (:refs arg-map)] {:refs @x})
+                  (when-let [x (:locals arg-map)] {:locals @x}))))
+
+
+(def trace-count-limit 1000)
+
+
+(defn- log-start [display-name k arg-map args]
+  (let [this (:this arg-map)
+        trace-count (when this (or (aget this "internal-trace-count") 1))
+        formatted-trace-count (when trace-count (str ":" trace-count))
+        log-args [(str "<" display-name k (or formatted-trace-count ""))]
+        log-args (if (empty? arg-map) log-args (conj log-args "\n" (arg-map->js arg-map)))
+        log-args (if (empty? args) log-args (conj log-args "\n" (clj->js args)))
+        log-args (if (= (count log-args) 1) [(str (log-args 0) ">")] (conj log-args "\n>"))]
+    (.apply (.-log js/console) js/console (to-array log-args))
+    (when trace-count
+      (if (and (not (nil? trace-count-limit)) (> trace-count trace-count-limit))
+        (throw "Trace count limit exceeded")
+        (do
+          (aset this "internal-trace-count" (inc trace-count))
+          (js/clearTimeout (aget this "internal-trace-timeout"))
+          (aset this "internal-trace-timeout"
+                (js/setTimeout #(aset this "internal-trace-count" nil) 200)))))))
+
+
+(defn- log-end [display-name k result]
+  (let [log-result? (when (contains? #{:get-default-props :get-initial-state} k) true)
+        log-args [(str "</" display-name k)]
+        log-args (if log-result? (conj log-args "\n" (clj->js result) "\n") log-args)
+        log-args (if log-result? (conj log-args ">") [(str (log-args 0) ">")])]
+    (.apply (.-log js/console) js/console (to-array log-args))))
+
+
+(defn- call-fn [_ f arg-map & [args]]
+  (apply f arg-map args))
+
+
+(defn- call-fn-with-trace [display-name k f arg-map & [args]]
+  (log-start display-name k arg-map args)
+  (let [result (apply f arg-map args)]
+    (log-end display-name k result)
+    result))
+
+
+(defn- wrap-non-react-methods [fn-map call-fn]
   (let [non-react-methods (apply dissoc fn-map common/react-component-api-method-keys)]
     (reduce-kv
      (fn [r k f]
-       (assoc r k (fn [& args] (this-as this (apply f (default-arg-map this) args)))))
+       (assoc r k (fn [& args] (this-as this (call-fn k f (default-arg-map this) args)))))
      fn-map
      non-react-methods)))
 
 
-(defn- wrap-get-initial-state [fn-map]
+(defn- wrap-get-initial-state [fn-map call-fn]
   ;; Initialize the component here since this is the first method called.
   (let [{:keys [get-initial-state]} fn-map
         wrapped (fn []
                   (this-as
                    this
-                   (let [state (when get-initial-state (get-initial-state (default-arg-map this)))
+                   (let [state (when get-initial-state
+                                 (call-fn
+                                  :get-initial-state get-initial-state (default-arg-map this)))
                          state (merge state (:initial-state-override (props this)))]
                      (if (.. this -cljsState)
                        ;; State already exists. Component was probably hot-reloaded,
@@ -147,12 +194,13 @@
     (assoc fn-map :get-initial-state wrapped)))
 
 
-(defn- wrap-render [fn-map]
+(defn- wrap-render [fn-map call-fn]
   (let [{:keys [render]} fn-map
         wrapped (fn []
                   (this-as
                    this
-                   (let [rendered (try (render (default-arg-map this))
+                   (let [rendered (try
+                                    (call-fn :render render (default-arg-map this))
                                     (catch js/Object e
                                       (.log js/window.console (.-stack e))
                                       (create-element :div {:style {:color "red"}}
@@ -163,61 +211,71 @@
     (assoc fn-map :render wrapped)))
 
 
+(defn- create-default-wrapper [call-fn]
+  (fn [k f] (fn [] (this-as this (call-fn k f (default-arg-map this))))))
+
+
 (defn- wrap-if-present [fn-map k create-wrapper]
   (if-let [f (get fn-map k)]
-    (assoc fn-map k (create-wrapper f))
+    (assoc fn-map k (create-wrapper k f))
     fn-map))
-
-
-(defn- create-default-wrapper [f]
-  (fn [] (this-as this (.call f this (default-arg-map this)))))
 
 
 (defn wrap-fn-defs [fn-map]
   ;; TODO: propTypes, mixins, statics
-  (-> fn-map
-      wrap-non-react-methods
-      wrap-get-initial-state wrap-render
-      (wrap-if-present
-       :get-default-props
-       (fn [f] (fn [] (this-as this #js{:cljsDefault (.call f this {:this this})}))))
-      (wrap-if-present :component-will-mount create-default-wrapper)
-      (wrap-if-present :component-did-mount create-default-wrapper)
-      (wrap-if-present
-       :component-will-receive-props
-       (fn [f]
-         (fn [nextProps]
-           (this-as
-            this
-            (.call f this (assoc (default-arg-map this) :next-props (.-cljs nextProps)))))))
-      (wrap-if-present
-       :should-component-update
-       (fn [f]
-         (fn [nextProps nextState]
-           (this-as
-            this
-            (.call f this (assoc (default-arg-map this)
-                                 :next-props (.-cljs nextProps)
-                                 :next-state (.-cljs nextState)))))))
-      (wrap-if-present
-       :component-will-update
-       (fn [f]
-         (fn [nextProps nextState]
-           (this-as
-            this
-            (.call f this (assoc (default-arg-map this)
-                                 :next-props (.-cljs nextProps)
-                                 :next-state (.-cljs nextState)))))))
-      (wrap-if-present
-       :component-did-update
-       (fn [f]
-         (fn [prevProps prevState]
-           (this-as
-            this
-            (.call f this (assoc (default-arg-map this)
-                                 :prev-props (.-cljs prevProps)
-                                 :prev-state (.-cljs prevState)))))))
-      (wrap-if-present :component-will-unmount create-default-wrapper)))
+  (let [trace? (:trace? fn-map)
+        display-name (:display-name fn-map)
+        fn-map (dissoc fn-map :trace?)
+        call-fn (if trace?
+                  (partial call-fn-with-trace (get fn-map :display-name "UnnamedComponent"))
+                  call-fn)]
+    (-> fn-map
+        (wrap-non-react-methods call-fn)
+        (wrap-get-initial-state call-fn)
+        (wrap-render call-fn)
+        (wrap-if-present
+         :get-default-props
+         (fn [k f]
+           (fn []
+             #js{:cljsDefault (call-fn k f {})})))
+        (wrap-if-present :component-will-mount (create-default-wrapper call-fn))
+        (wrap-if-present :component-did-mount (create-default-wrapper call-fn))
+        (wrap-if-present
+         :component-will-receive-props
+         (fn [k f]
+           (fn [next-props]
+             (this-as
+              this
+              (call-fn k f (assoc (default-arg-map this)
+                                  :next-props (aget next-props "cljs")))))))
+        (wrap-if-present
+         :should-component-update
+         (fn [k f]
+           (fn [next-props next-state]
+             (this-as
+              this
+              (call-fn k f (assoc (default-arg-map this)
+                                  :next-props (aget next-props "cljs")
+                                  :next-state (aget next-state "cljs")))))))
+        (wrap-if-present
+         :component-will-update
+         (fn [k f]
+           (fn [next-props next-state]
+             (this-as
+              this
+              (call-fn k f (assoc (default-arg-map this)
+                                  :next-props (aget next-props "cljs")
+                                  :next-state (aget next-state "cljs")))))))
+        (wrap-if-present
+         :component-did-update
+         (fn [k f]
+           (fn [prev-props prev-state]
+             (this-as
+              this
+              (call-fn k f (assoc (default-arg-map this)
+                                  :prev-props (aget prev-props "cljs")
+                                  :prev-state (aget prev-state "cljs")))))))
+        (wrap-if-present :component-will-unmount (create-default-wrapper call-fn)))))
 
 
 (defn create-camel-cased-react-method-wrapper [k]
