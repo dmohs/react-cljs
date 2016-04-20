@@ -1,11 +1,11 @@
 (ns dmohs.react.core
+  (:require-macros [dmohs.react.core :refer [if-not-optimized]])
   (:require
    [cljsjs.react :as React]
    [cljsjs.react.dom :as ReactDOM]
    [dmohs.react.common :as common]))
 
 
-;; TODO: debug data for React Chrome plugin (store js version of state and props)
 ;; TOOD: debug component method calls
 
 
@@ -14,10 +14,7 @@
 
 
 (defn- props [instance]
-  (let [defaults (.. instance -props -cljsDefault)]
-    (if defaults
-      (merge defaults (.. instance -props -cljs))
-      (.. instance -props -cljs))))
+  (.. instance -props -cljs))
 
 
 (defn- maybe-report-state-change [instance new-state]
@@ -29,7 +26,9 @@
 
 (defn- atom-like-state-swap! [instance & swap-args]
   (let [new-value (apply swap! (.. instance -cljsState) swap-args)]
-    (.setState instance #js{:cljs new-value})
+    (.setState instance (if-not-optimized
+                          #js{:cljs new-value :js (clj->js new-value)}
+                          #js{:cljs new-value}))
     (maybe-report-state-change instance new-value)
     new-value))
 
@@ -47,7 +46,9 @@
   IReset
   (-reset! [this new-value]
     (reset! (.. instance -cljsState) new-value)
-    (.setState instance #js{:cljs new-value})
+    (.setState instance (if-not-optimized
+                          #js{:cljs new-value :js (clj->js new-value)}
+                          #js{:cljs new-value}))
     (maybe-report-state-change instance new-value)
     new-value))
 
@@ -89,16 +90,16 @@
                         children)]
       (if tag?
         (apply React.createElement type (clj->js props) children)
-        (if (or (nil? props) (empty? props))
-          (apply React.createElement type nil children)
-          (let [js-props #js{}
-                ref (props :ref)
-                key (props :key)
-                props (dissoc props :ref :key)]
-            (set! (.. js-props -cljs) props)
-            (when ref (set! (.. js-props -ref) ref))
-            (when key (set! (.. js-props -key) key))
-            (apply React.createElement type js-props children)))))))
+        (let [js-props #js{}
+              {:keys [ref key]} props
+              default-props (aget (.-constructor (.-prototype type)) "defaultProps")
+              props (merge (when default-props (.-cljsDefault default-props))
+                           (dissoc props :ref :key))]
+          (set! (.. js-props -cljs) props)
+          (if-not-optimized (set! (.. js-props -js) (clj->js props)) nil)
+          (when ref (set! (.. js-props -ref) ref))
+          (when key (set! (.. js-props -key) key))
+          (apply React.createElement type js-props children))))))
 
 
 (defn- default-arg-map [this]
@@ -133,12 +134,16 @@
                      (if (.. this -cljsState)
                        ;; State already exists. Component was probably hot-reloaded,
                        ;; so don't initialize.
-                       #js{:cljs state}
+                       (if-not-optimized
+                         #js{:cljs state :js (clj->js state)}
+                         #js{:cljs state})
                        (let [locals-atom (atom nil)]
                          (set! (.-cljsLocals this) locals-atom)
                          (set! (.. this -cljsState) (atom state))
                          (maybe-report-state-change this state)
-                         #js{:cljs state})))))]
+                         (if-not-optimized
+                           #js{:cljs state :js (clj->js state)}
+                           #js{:cljs state}))))))]
     (assoc fn-map :get-initial-state wrapped)))
 
 
