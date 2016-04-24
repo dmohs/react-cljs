@@ -8,14 +8,14 @@ By contrast, this library simply exposes an interface to React in a ClojureScrip
 
 ## Goodies
 
-- **Built-in support for hot-reloading**. If you use, for example, Figwheel to hot-reload files on change, React components created with the `defc` macro will be patched automatically.
+- **Built-in support for hot-reloading**. If you use, for example, [Figwheel](https://github.com/bhauman/lein-figwheel) to hot-reload files on change, React components created with the `defc` macro will be patched automatically.
 - **Method tracing**. Including `:trace? true` in the class definition map will cause every method call to emit a message to the console. This also attempts to break infinite loops by setting a ceiling on the number of traces in a short time period.
 - **React Developer Tools support**. Copies component state and props into plain JavaScript in non-optimized compilation modes so it is easier to use React Developer Tools (Chrome extension) to inspect components.
 
 ### Add dependency:
 
 ```clj
-[dmohs/react "0.2.12"]
+[dmohs/react "1.0.0"]
 ```
 
 ## Top-Level API
