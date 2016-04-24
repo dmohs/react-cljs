@@ -11,7 +11,7 @@
 
 
 (defn- props [instance]
-  (.. instance -props -cljs))
+  (aget (.. instance -props) "cljs"))
 
 
 (defn- maybe-report-state-change [instance new-state]
@@ -22,7 +22,7 @@
 
 
 (defn- atom-like-state-swap! [instance & swap-args]
-  (let [new-value (apply swap! (.. instance -cljsState) swap-args)]
+  (let [new-value (apply swap! (aget instance "cljsState") swap-args)]
     (.setState instance (if-not-optimized
                           #js{:cljs new-value :js (clj->js new-value)}
                           #js{:cljs new-value}))
@@ -34,7 +34,7 @@
   IDeref
   (-deref [this]
     (when-let [state (.. instance -state)]
-      (.. state -cljs)))
+      (aget state "cljs")))
   ISwap
   (-swap! [this f] (atom-like-state-swap! instance f))
   (-swap! [this f a] (atom-like-state-swap! instance f a))
@@ -42,7 +42,7 @@
   (-swap! [this f a b xs] (apply atom-like-state-swap! instance f a b xs))
   IReset
   (-reset! [this new-value]
-    (reset! (.. instance -cljsState) new-value)
+    (reset! (aget instance "cljsState") new-value)
     (.setState instance (if-not-optimized
                           #js{:cljs new-value :js (clj->js new-value)}
                           #js{:cljs new-value}))
@@ -65,7 +65,7 @@
 
 
 (defn- locals [instance]
-  (.-cljsLocals instance))
+  (aget instance "cljsLocals"))
 
 
 (defn create-element
@@ -90,12 +90,12 @@
         (let [js-props #js{}
               {:keys [ref key]} props
               default-props (aget (.-constructor (.-prototype type)) "defaultProps")
-              props (merge (when default-props (.-cljsDefault default-props))
+              props (merge (when default-props (aget default-props "cljsDefault"))
                            (dissoc props :ref :key))]
-          (set! (.. js-props -cljs) props)
-          (if-not-optimized (set! (.. js-props -js) (clj->js props)) nil)
-          (when ref (set! (.. js-props -ref) ref))
-          (when key (set! (.. js-props -key) key))
+          (aset js-props "cljs" props)
+          (if-not-optimized (aset js-props "js" (clj->js props)) nil)
+          (when ref (aset js-props "ref" ref))
+          (when key (aset js-props "key" key))
           (apply React.createElement type js-props children))))))
 
 
@@ -178,15 +178,15 @@
                                  (call-fn
                                   :get-initial-state get-initial-state (default-arg-map this)))
                          state (merge state (:initial-state-override (props this)))]
-                     (if (.. this -cljsState)
+                     (if (aget this "cljsState")
                        ;; State already exists. Component was probably hot-reloaded,
                        ;; so don't initialize.
                        (if-not-optimized
                          #js{:cljs state :js (clj->js state)}
                          #js{:cljs state})
                        (let [locals-atom (atom nil)]
-                         (set! (.-cljsLocals this) locals-atom)
-                         (set! (.. this -cljsState) (atom state))
+                         (aset  this "cljsLocals" locals-atom)
+                         (aset this "cljsState" (atom state))
                          (maybe-report-state-change this state)
                          (if-not-optimized
                            #js{:cljs state :js (clj->js state)}
