@@ -72,7 +72,7 @@
   [type-or-vec props & children]
   (if (vector? type-or-vec)
     (apply create-element type-or-vec)
-    (let [tag? (or (string? type-or-vec) (keyword? type-or-vec))
+    (let [tag? (keyword? type-or-vec)
           type (if tag? (name type-or-vec) type-or-vec)
           children (reduce (fn [r c]
                              (if (seq? c)
@@ -85,7 +85,7 @@
                             (apply create-element x)
                             x))
                         children)]
-      (if tag?
+      (if (or tag? (not (aget (.-prototype type) "react-cljs?")))
         (apply React.createElement type (clj->js props) children)
         (let [js-props #js{}
               {:keys [ref key]} props
@@ -291,7 +291,7 @@
 
 
 (defn create-class [fn-map]
-  (let [class-def #js{:autobind false}]
+  (let [class-def #js{:autobind false :react-cljs? true}]
     (doseq [[k f] fn-map]
       (aset class-def (name k) f)
       ;; React, being Javascript, likes camel-case.
