@@ -15,7 +15,7 @@ By contrast, this library simply exposes an interface to React in a ClojureScrip
 ### Add dependency:
 
 ```clj
-[dmohs/react "1.0.1+0.14.3-1"]
+[dmohs/react "1.0.2+15.0.2"]
 ```
 
 ## Top-Level API

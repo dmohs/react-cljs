@@ -1,3 +1,7 @@
+# 1.0.2+15.0.2
+
+- Bump React to version 15.
+
 # 1.0.1+0.14.3-1
 
 - Added the React version to the "build metadata" of this library's version number.
