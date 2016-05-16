@@ -1,4 +1,4 @@
-# react-cljs
+# react-cljs [![Clojars Project](https://img.shields.io/clojars/v/dmohs/react.svg)](https://clojars.org/dmohs/react)
 
 A ClojureScript wrapper for React.
 
@@ -15,7 +15,7 @@ By contrast, this library simply exposes an interface to React in a ClojureScrip
 ### Add dependency:
 
 ```clj
-[dmohs/react "1.0.0"]
+[dmohs/react "1.0.1"]
 ```
 
 ## Top-Level API

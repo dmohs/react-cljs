@@ -1,4 +1,8 @@
-# 1.0
+# 1.0.1+0.14.3-1
+
+- Added the React version to the "build metadata" of this library's version number.
+
+# 1.0.0
 
 - Hot reloading now replaces methods in a React component's prototype instead of saving and
   restoring. This is safer and doesn't cause `component-did-mount` to fire.
