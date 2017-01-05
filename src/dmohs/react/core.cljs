@@ -141,7 +141,9 @@
 
 
 (defn- log-end [display-name k result]
-  (let [log-result? (when (contains? #{:get-default-props :get-initial-state} k) true)
+  (let [log-result? (when (contains? #{:get-default-props :get-initial-state
+                                       :should-component-update} k)
+                      true)
         log-args [(str "</" display-name k)]
         log-args (if log-result? (conj log-args "\n" (clj->js result) "\n") log-args)
         log-args (if log-result? (conj log-args ">") [(str (log-args 0) ">")])]
