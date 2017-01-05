@@ -68,6 +68,31 @@
   (aget instance "cljsLocals"))
 
 
+(defn- transform-keys [keyfn xs]
+  ;; Structure taken from js->clj source.
+  (let [f (fn thisfn [x]
+            (cond
+              (map? x)
+              (reduce-kv (fn [r k v] (assoc r (keyfn k) (thisfn v))) {} x)
+              (seq? x)
+              (doall (map thisfn x))
+              (coll? x)
+              (into (empty x) (map thisfn x))
+              :else x))]
+    (f xs)))
+
+
+(defn- camel-case-keys [m]
+  (transform-keys
+   (fn [k]
+     (if-not (keyword? k)
+       k
+       (let [words (clojure.string/split (name k) #"-")
+             cased (map #(str (clojure.string/upper-case (subs % 0 1)) (subs % 1)) (rest words))]
+         (keyword (apply str (first words) cased)))))
+   m))
+
+
 (defn create-element
   [type-or-vec props & children]
   (if (vector? type-or-vec)
@@ -86,7 +111,7 @@
                             x))
                         children)]
       (if (or tag? (not (aget (.-prototype type) "react-cljs?")))
-        (apply React.createElement type (clj->js props) children)
+        (apply React.createElement type (clj->js (camel-case-keys props)) children)
         (let [js-props #js{}
               {:keys [ref key]} props
               default-props (aget (.-constructor (.-prototype type)) "defaultProps")
