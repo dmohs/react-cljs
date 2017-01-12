@@ -1,13 +1,17 @@
 (ns dmohs.react
   (:require
+   cljs.analyzer
    [dmohs.react.common :as common]))
 
 
 (defmacro defc [name doc-string-or-fn-map & [fn-map]]
   (let [[doc-string fn-map] (if (string? doc-string-or-fn-map)
                               [doc-string-or-fn-map fn-map]
-                              [nil doc-string-or-fn-map])]
-    `(let [fn-map# (merge {:display-name (name '~name)} ~fn-map)
+                              [nil doc-string-or-fn-map])
+        component-ns (str cljs.analyzer/*cljs-ns*)]
+    `(let [fn-map# (merge {:display-name (name '~name)
+                           :long-display-name (str ~component-ns "." (name '~name))}
+                          ~fn-map)
            fn-map# (dmohs.react.core/wrap-fn-defs fn-map#)
            api-keys-to-check# (disj common/react-component-api-method-keys
                                     :get-default-props :render)

@@ -118,7 +118,10 @@
               props (merge (when default-props (aget default-props "cljsDefault"))
                            (dissoc props :ref :key))]
           (aset js-props "cljs" props)
-          (if-not-optimized (aset js-props "js" (clj->js props)) nil)
+          (if-not-optimized
+            (aset js-props "js"
+                  (clj->js (merge {:.nsname (aget (.-prototype type) "long-display-name")} props)))
+            nil)
           (when ref (aset js-props "ref" ref))
           (when key (aset js-props "key" key))
           (apply React.createElement type js-props children))))))
@@ -187,7 +190,8 @@
 
 
 (defn- wrap-non-react-methods [fn-map call-fn]
-  (let [non-react-methods (apply dissoc fn-map common/react-component-api-method-keys)]
+  (let [non-react-methods (apply dissoc fn-map :long-display-name
+                            common/react-component-api-method-keys)]
     (reduce-kv
      (fn [r k f]
        (assoc r k (fn [& args] (this-as this (call-fn k f (default-arg-map this) args)))))
@@ -251,7 +255,6 @@
 (defn wrap-fn-defs [fn-map]
   ;; TODO: propTypes, mixins, statics
   (let [trace? (:trace? fn-map)
-        display-name (:display-name fn-map)
         fn-map (dissoc fn-map :trace?)
         call-fn (if trace?
                   (partial call-fn-with-trace (get fn-map :display-name "UnnamedComponent"))
