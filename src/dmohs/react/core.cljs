@@ -258,7 +258,10 @@
         fn-map (dissoc fn-map :trace?)
         call-fn (if trace?
                   (partial call-fn-with-trace (get fn-map :display-name "UnnamedComponent"))
-                  call-fn)]
+                  call-fn)
+        render-fn (:render fn-map)]
+    (assert (fn? render-fn)
+            (str "render is required and must be a function. render is: " (pr-str render-fn)))
     (-> fn-map
         (wrap-non-react-methods call-fn)
         (wrap-get-initial-state call-fn)
