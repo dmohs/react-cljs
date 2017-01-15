@@ -134,9 +134,28 @@
     (.apply m instance (to-array args))))
 
 
+(defn- bind-prop-atom
+  ([this prop-key] (bind-prop-atom this prop-key prop-key))
+  ([this prop-key state-key] (bind-prop-atom this prop-key state-key true))
+  ([this prop-key state-key follow?]
+   (let [props (props this)
+         _ (assert (contains? props prop-key) (str "No prop found at key: " prop-key))
+         a (get props prop-key)]
+     (assert (satisfies? IWatchable a) (str "No watchable atom found at key: " prop-key))
+     (add-watch a this (fn [_ _ old-value new-value]
+                         (swap! (state this) assoc state-key new-value)))
+     (let [bound-props (or (aget this "cljsBoundProps") {})]
+       (aset this "cljsBoundProps"
+             (if follow?
+               (assoc bound-props prop-key state-key)
+               (dissoc bound-props prop-key))))
+     {state-key @a})))
+
+
 (defn- default-arg-map [this]
   {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)
-   :after-update (fn [callback] (.setState this #js{} callback))})
+   :after-update (fn [callback] (.setState this #js{} callback))
+   :bind-atom (partial bind-prop-atom this)})
 
 
 (defn- arg-map->js [arg-map]
@@ -225,6 +244,25 @@
     (assoc fn-map :get-initial-state wrapped)))
 
 
+(defn- wrap-component-will-receive-props [fn-map call-fn]
+  (let [{:keys [component-will-receive-props]} fn-map
+        wrapped (fn [next-props]
+                  (let [next-props (aget next-props "cljs")]
+                    (this-as
+                     this
+                     (when-let [bound-props (aget this "cljsBoundProps")]
+                       (doseq [[prop-key state-key] bound-props]
+                         (let [a (get next-props prop-key)]
+                           (swap! (state this) assoc state-key @a)
+                           (add-watch a this (fn [_ _ old-value new-value]
+                                               (swap! (state this) assoc state-key new-value))))))
+                     (when component-will-receive-props
+                       (call-fn :component-will-receive-props component-will-receive-props
+                                (assoc (default-arg-map this)
+                                       :next-props next-props))))))]
+    (assoc fn-map :component-will-receive-props wrapped)))
+
+
 (defn- wrap-render [fn-map call-fn]
   (let [{:keys [render]} fn-map
         wrapped (fn []
@@ -273,14 +311,7 @@
              #js{:cljsDefault (call-fn k f {})})))
         (wrap-if-present :component-will-mount (create-default-wrapper call-fn))
         (wrap-if-present :component-did-mount (create-default-wrapper call-fn))
-        (wrap-if-present
-         :component-will-receive-props
-         (fn [k f]
-           (fn [next-props]
-             (this-as
-              this
-              (call-fn k f (assoc (default-arg-map this)
-                                  :next-props (aget next-props "cljs")))))))
+        (wrap-component-will-receive-props call-fn)
         (wrap-if-present
          :should-component-update
          (fn [k f]
