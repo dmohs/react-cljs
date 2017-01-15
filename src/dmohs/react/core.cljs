@@ -120,7 +120,7 @@
           (aset js-props "cljs" props)
           (if-not-optimized
             (aset js-props "js"
-                  (clj->js (merge {:.nsname (aget (.-prototype type) "long-display-name")} props)))
+                  (clj->js (merge {:.ns (aget (.-prototype type) "namespace")} props)))
             nil)
           (when ref (aset js-props "ref" ref))
           (when key (aset js-props "key" key))
@@ -190,7 +190,7 @@
 
 
 (defn- wrap-non-react-methods [fn-map call-fn]
-  (let [non-react-methods (apply dissoc fn-map :long-display-name
+  (let [non-react-methods (apply dissoc fn-map :namespace
                             common/react-component-api-method-keys)]
     (reduce-kv
      (fn [r k f]

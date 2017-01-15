@@ -7,10 +7,9 @@
 (defmacro defc [name doc-string-or-fn-map & [fn-map]]
   (let [[doc-string fn-map] (if (string? doc-string-or-fn-map)
                               [doc-string-or-fn-map fn-map]
-                              [nil doc-string-or-fn-map])
-        component-ns (str cljs.analyzer/*cljs-ns*)]
+                              [nil doc-string-or-fn-map])]
     `(let [fn-map# (merge {:display-name (name '~name)
-                           :long-display-name (str ~component-ns "." (name '~name))}
+                           :namespace ~(str cljs.analyzer/*cljs-ns*)}
                           ~fn-map)
            fn-map# (dmohs.react.core/wrap-fn-defs fn-map#)
            api-keys-to-check# (disj common/react-component-api-method-keys
