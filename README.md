@@ -11,6 +11,7 @@ By contrast, this library simply exposes an interface to React in a ClojureScrip
 - **Built-in support for hot-reloading**. If you use, for example, [Figwheel](https://github.com/bhauman/lein-figwheel) to hot-reload files on change, React components created with the `defc` macro will be patched automatically.
 - **Method tracing**. Including `:trace? true` in the class definition map will cause every method call to emit a message to the console. This also attempts to break infinite loops by setting a ceiling on the number of traces in a short time period.
 - **React Developer Tools support**. Copies component state and props into plain JavaScript in non-optimized compilation modes so it is easier to use React Developer Tools (Chrome extension) to inspect components.
+- **abind** *experimental*. Binds an atom passed as a property to a key in state. Whenever the atom's value changes, the corresponding state key will receive the new value (and cause a re-render).
 
 ### Add dependency:
 
@@ -150,6 +151,7 @@ Methods are passed a map with the appropriate keys defined:
  :prev-state prevState ; "
  :next-props nextProps ; "
  :next-state nextState ; "
+ :abind ; [4]
  }
 ```
 
@@ -162,6 +164,11 @@ Methods are passed a map with the appropriate keys defined:
    `(set! (.-myTimer this) (js/setTimeout ...))`, you can do
 
    `(swap! locals assoc :my-timer (js/setTimeout ...))`.
+4. Bind a property atom to a key in state, e.g.,
+
+   `(abind :foo)` or `(abind :foo :my-state-key)`
+
+   Returns {state-key value-of-atom} for use in `:get-initial-state`.
 
 Note: for non-api methods (like `:add-foo` above), this map is the first argument before any arguments passed when calling the method using `react/call`.
 

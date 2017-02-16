@@ -136,8 +136,7 @@
 
 (defn- bind-prop-atom
   ([this prop-key] (bind-prop-atom this prop-key prop-key))
-  ([this prop-key state-key] (bind-prop-atom this prop-key state-key true))
-  ([this prop-key state-key follow?]
+  ([this prop-key state-key]
    (let [props (props this)
          _ (assert (contains? props prop-key) (str "No prop found at key: " prop-key))
          a (get props prop-key)]
@@ -145,17 +144,14 @@
      (add-watch a this (fn [_ _ old-value new-value]
                          (swap! (state this) assoc state-key new-value)))
      (let [bound-props (or (aget this "cljsBoundProps") {})]
-       (aset this "cljsBoundProps"
-             (if follow?
-               (assoc bound-props prop-key state-key)
-               (dissoc bound-props prop-key))))
+       (aset this "cljsBoundProps" (assoc bound-props prop-key state-key)))
      {state-key @a})))
 
 
 (defn- default-arg-map [this]
   {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)
    :after-update (fn [callback] (.setState this #js{} callback))
-   :bind-atom (partial bind-prop-atom this)})
+   :abind (partial bind-prop-atom this)})
 
 
 (defn- arg-map->js [arg-map]
