@@ -3,6 +3,7 @@
   (:require
    [cljsjs.react :as React]
    [cljsjs.react.dom :as ReactDOM]
+   clojure.string
    [dmohs.react.common :as common]))
 
 
@@ -85,11 +86,11 @@
 (defn- camel-case-keys [m]
   (transform-keys
    (fn [k]
-     (if-not (keyword? k)
-       k
+     (if (and (keyword? k) (not (clojure.string/starts-with? (name k) "data-")))
        (let [words (clojure.string/split (name k) #"-")
              cased (map #(str (clojure.string/upper-case (subs % 0 1)) (subs % 1)) (rest words))]
-         (keyword (apply str (first words) cased)))))
+         (keyword (apply str (first words) cased)))
+       k))
    m))
 
 
