@@ -1,6 +1,7 @@
 (ns dmohs.react.core
   (:require-macros [dmohs.react.core :refer [if-not-optimized]])
   (:require
+   cljsjs.create-react-class
    [cljsjs.react :as React]
    [cljsjs.react.dom :as ReactDOM]
    clojure.string
@@ -361,7 +362,7 @@
               (if (= k :display-name)
                 f
                 (create-camel-cased-react-method-wrapper k)))))
-    (let [class (React.createClass class-def)]
+    (let [class (js/createReactClass class-def)]
       (extend-type class
         IFn
         (-invoke ([this method-keyword & args]

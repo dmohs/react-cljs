@@ -1,3 +1,9 @@
+# 1.1.2+15.5.4-0
+
+- Bump React version.
+- Add `cljsjs/create-react-class` to silence deprecation warning of React.createClass.
+- Don't convert data attributes to camel-case since those need to remain kebab-case.
+
 # 1.0.2+15.0.2
 
 - Bump React to version 15.
