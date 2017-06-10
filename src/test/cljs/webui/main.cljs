@@ -52,7 +52,7 @@
    :render
    (fn [{:keys [this state]}]
      (let [{:keys [rect]} @state]
-       [:div {}
+       [:div {:data-foo "bar" :aria-foo "bar"}
         [:h2 {} (r/get-display-name this)]
         [:div {}
          "Real count: " (:real-count @state) [:br]
