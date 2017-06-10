@@ -65,11 +65,29 @@
 (defn call
   "Calls a method on a component instance."
   [method-key instance & method-args]
+  (assert (keyword? method-key) (str "Not a keyword: " method-key))
   (apply core/call method-key instance method-args))
 
 
 (defn get-display-name [instance]
   (core/get-display-name instance))
+
+
+;;
+;; Extra Goodies
+;;
+
+(defn after-update
+  "Calls the function with any given args directly after the component has been updated from the
+  last state change. Causes an update if no state change is pending."
+  [instance f & args]
+  (apply core/after-update instance f args))
+
+(defn method
+  "Returns the method with the given key. Subsequent calls return the same (identical) function."
+  [instance method-key]
+  (assert (keyword? method-key) (str "Not a keyword: " method-key))
+  (core/get-bound-method instance method-key))
 
 
 ;;

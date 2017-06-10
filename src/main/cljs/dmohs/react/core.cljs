@@ -87,7 +87,11 @@
 (defn- camel-case-keys [m]
   (transform-keys
    (fn [k]
-     (if (and (keyword? k) (not (clojure.string/starts-with? (name k) "data-")))
+     (if (and (keyword? k)
+              (let [n (name k)]
+                (and
+                 (not (clojure.string/starts-with? n "data-"))
+                 (not (clojure.string/starts-with? n "aria-")))))
        (let [words (clojure.string/split (name k) #"-")
              cased (map #(str (clojure.string/upper-case (subs % 0 1)) (subs % 1)) (rest words))]
          (keyword (apply str (first words) cased)))
@@ -130,11 +134,26 @@
 
 
 (defn call [k instance & args]
-  (assert (keyword? k) (str "Not a keyword: " k))
   (let [m (aget instance (name k))]
-    (assert m (str "Method " k " not found on component '" (get-display-name instance) "'"))
+    (when-not m
+      (throw (js/Error. (str "Method " k " not found on component " (get-display-name instance)))))
     (.apply m instance (to-array args))))
 
+(defn get-bound-method [instance k]
+  (let [method-name (name k)
+        bound-method-name (str method-name "__bound")
+        bound-method (aget instance bound-method-name)]
+    (or bound-method
+        (let [method (or (aget instance method-name)
+                         (throw
+                           (js/Error. (str "Method " k " not found on component "
+                                           (get-display-name instance)))))
+              bound-method (.bind method instance)]
+          (aset instance bound-method-name bound-method)
+          bound-method))))
+
+(defn after-update [instance f & args]
+  (.setState instance #js{} (fn [] (apply f args))))
 
 (defn- bind-prop-atom
   ([this prop-key] (bind-prop-atom this prop-key prop-key))
@@ -152,7 +171,7 @@
 
 (defn- default-arg-map [this]
   {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)
-   :after-update (fn [callback] (.setState this #js{} callback))
+   :after-update (partial after-update this)
    :abind (partial bind-prop-atom this)})
 
 

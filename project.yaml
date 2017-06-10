@@ -1,0 +1,7 @@
+namespace: dmohs-react-cljs
+source_file_paths:
+  - project.clj
+  - src/main/cljs
+  - src/test/cljs
+static_file_src: src/static
+static_file_dest: resources/public

@@ -1,3 +1,10 @@
+# 1.2.0+15.5.4-0
+
+- Also don't convert aria attributes to camel-case since.
+- `after-update` added as a function (alternative to getting through the argument map).
+- `method` returns the bound method of the given name. Useful for non-React event handlers since
+  you must provide an identical function when removing.
+
 # 1.1.2+15.5.4-0
 
 - Bump React version.
