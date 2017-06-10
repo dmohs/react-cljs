@@ -1,3 +1,5 @@
-.lein-repl-history
-pom.xml*
-target/
+/.lein-repl-history
+/.project/common
+/.rsync.log
+/pom.xml*
+/target/
