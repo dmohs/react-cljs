@@ -72,7 +72,8 @@
    (fn [{:keys [this state locals]}]
      [:div {}
       [:h2 {} (r/get-display-name this)]
-      "Click the window."
+      [:div {:style {:margin-bottom "1em"}}
+       "All of these add and remove a click handler to/from the window."]
       [:div {} "This doesn't work: " (:not-equal-count @state)
        " " [:button {:on-click #(this :-toggle-anonymous)} "Toggle"]]
       [:div {} "This does: " (:saved-count @state)

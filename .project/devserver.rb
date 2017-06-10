@@ -1,5 +1,4 @@
 require_relative "common/common"
-require "json"
 
 def start_dev()
   c = Common.new

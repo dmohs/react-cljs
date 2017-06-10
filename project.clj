@@ -7,7 +7,7 @@
   :dependencies [[cljsjs/create-react-class "15.5.3-0"]
                  [cljsjs/react-dom "15.5.4-0"]] ; react-dom depends on react
   :source-paths ~source-paths
-  :profiles {:ui
+  :profiles {:ui-base
              {:plugins [[lein-cljsbuild "1.1.6"] [lein-figwheel "0.5.10"]]
               :dependencies [[binaryage/devtools "0.9.4"]
                              [org.clojure/clojure "1.8.0"]
@@ -20,12 +20,22 @@
                 {:source-paths ~(concat source-paths ["src/test/cljs"])
                  :compiler
                  {:main "webui.main"
-                  :optimizations :none
-                  :source-map true
-                  :source-map-timestamp true
                   :output-dir "resources/public/target/build"
                   :output-to "resources/public/target/compiled.js"
-                  :asset-path "target/build"
-                  :preloads [devtools.preload]
-                  :external-config {:devtools/config {:features-to-install [:formatters :hints]}}}
-                 :figwheel true}}}}})
+                  :asset-path "target/build"}
+                 :figwheel true}}}}
+             :ui
+             [:ui-base
+              {:cljsbuild
+               {:builds
+                {:client
+                 {:compiler
+                  {:optimizations :none
+                   :source-map true
+                   :source-map-timestamp true
+                   :preloads [devtools.preload]
+                   :external-config {:devtools/config
+                                     {:features-to-install [:formatters :hints]}}}}}}}]
+             :docs
+             [:ui-base
+              {:cljsbuild {:builds {:client {:compiler {:optimizations :simple}}}}}]})
