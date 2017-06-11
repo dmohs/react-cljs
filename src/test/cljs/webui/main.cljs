@@ -52,7 +52,7 @@
    :render
    (fn [{:keys [this state]}]
      (let [{:keys [rect]} @state]
-       [:div {:data-foo "bar" :aria-foo "bar"}
+       [:div {:data-foo "bar" :aria-label "bar"}
         [:h2 {} (r/get-display-name this)]
         [:div {}
          "Real count: " (:real-count @state) [:br]
@@ -120,6 +120,12 @@
   {:render
    (fn []
      [:div {}
+      [:h1 {} "React CLJS Examples"]
+      [:ul {}
+       [:li {} [:a {:href "https://github.com/dmohs/react-cljs"} "Project"]]
+       [:li {}
+        [:a {:href "https://github.com/dmohs/react-cljs/blob/master/src/test/cljs/webui/main.cljs"}
+         "Examples Source"]]]
       [ComponentWithProps {:name "Friendly ClojureScript Developer"}]
       [ComponentWithState]
       [ComponentWithRefs]
