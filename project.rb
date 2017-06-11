@@ -8,6 +8,7 @@ end
 require_relative ".project/common/common"
 require_relative ".project/devserver"
 require_relative ".project/docs"
+require_relative ".project/install"
 
 c = Common.new
 
