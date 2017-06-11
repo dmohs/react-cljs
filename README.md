@@ -12,6 +12,12 @@ Since objects are an excellent abstraction for UI components, this wrapper esche
 
 Take a look at the [examples](http://dmohs.github.io/react-cljs/examples/) and the [examples source](https://github.com/dmohs/react-cljs/blob/master/src/test/cljs/webui/main.cljs) for usage. An understanding of React via React's excellent documentation will aid in understanding these examples.
 
+If you'd like to try out the examples yourself with Figwheel's amazing hot-reloader, you'll need ruby and docker. Then run:
+```sh
+./project.rb start
+```
+to start Figwheel. When it has finished compiling, open http://localhost:3449/.
+
 ## Goodies
 
 - **Built-in support for hot-reloading**. If you use, for example, [Figwheel](https://github.com/bhauman/lein-figwheel) to hot-reload files on change, React components created with the `defc` macro will be patched automatically.
