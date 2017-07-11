@@ -1,5 +1,7 @@
+/.idea/
 /.lein-repl-history
 /.project/common
 /.rsync.log
 /pom.xml*
+/react.iml
 /target/

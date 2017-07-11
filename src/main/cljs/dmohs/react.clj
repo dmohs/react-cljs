@@ -4,7 +4,7 @@
    [dmohs.react.common :as common]))
 
 
-(defmacro defc [name doc-string-or-fn-map & [fn-map]]
+(defmacro define [private? name doc-string-or-fn-map & [fn-map]]
   (let [[doc-string fn-map] (if (string? doc-string-or-fn-map)
                               [doc-string-or-fn-map fn-map]
                               [nil doc-string-or-fn-map])]
@@ -16,7 +16,10 @@
                                     :get-default-props :render)
            api-keys-used# (set (keys fn-map#))]
        (if-not (cljs.core/exists? ~name)
-         (def ~name (dmohs.react.core/create-class fn-map#))
+         (def ~name
+           ~(if private?
+              `(with-meta (dmohs.react.core/create-class fn-map#) {:private true})
+              `(dmohs.react.core/create-class fn-map#)))
          ;; Assume hot-reload. Instead of redefining the symbol, modify the prototype by replacing
          ;; the methods.
          (let [prototype# (.-prototype ~name)]
@@ -33,3 +36,9 @@
                    (if (contains? api-keys-used# ~'k)
                      (dmohs.react.core/create-camel-cased-react-method-wrapper ~'k)
                      nil))))))))
+
+(defmacro defc [name doc-string-or-fn-map & [fn-map]]
+  `(define false ~name ~doc-string-or-fn-map ~fn-map))
+
+(defmacro defc- [name doc-string-or-fn-map & [fn-map]]
+  `(define true ~name ~doc-string-or-fn-map ~fn-map))
