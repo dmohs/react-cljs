@@ -1,7 +1,7 @@
 (ns dmohs.react
   (:require
-   cljs.analyzer
-   [dmohs.react.common :as common]))
+    cljs.analyzer
+    [dmohs.react.common :as common]))
 
 
 (defmacro defc [name doc-string-or-fn-map & [fn-map]]
