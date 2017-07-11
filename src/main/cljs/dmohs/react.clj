@@ -1,7 +1,7 @@
 (ns dmohs.react
   (:require
-   cljs.analyzer
-   [dmohs.react.common :as common]))
+    cljs.analyzer
+    [dmohs.react.common :as common]))
 
 
 (defmacro define [private? name doc-string-or-fn-map & [fn-map]]
@@ -10,8 +10,8 @@
                               [nil doc-string-or-fn-map])
         fn-map-var (gensym "fn-map-")]
     `(let [~fn-map-var (merge {:display-name (name '~name)
-                           :namespace ~(str cljs.analyzer/*cljs-ns*)}
-                          ~fn-map)
+                               :namespace ~(str cljs.analyzer/*cljs-ns*)}
+                              ~fn-map)
            ~fn-map-var (dmohs.react.core/wrap-fn-defs ~fn-map-var)
            api-keys-to-check# (disj common/react-component-api-method-keys
                                     :get-default-props :render)
