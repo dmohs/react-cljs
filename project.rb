@@ -1,14 +1,22 @@
 #!/usr/bin/env ruby
 
 unless Dir.exists? ".project/common"
-  system(*%W{mkdir -p .project})
-  system(*%W{git clone https://github.com/dmohs/project-management.git .project/common})
+  unless system(*%W{mkdir -p .project})
+    STDERR.puts "mkdir failed."
+    exit 1
+  end
+  unless system(*%W{git clone https://github.com/dmohs/project-management.git .project/common})
+    STDERR.puts "git clone failed."
+    exit 1
+  end
 end
 
 require_relative ".project/common/common"
-require_relative ".project/devserver"
-require_relative ".project/docs"
-require_relative ".project/install"
+Dir.foreach(".project") do |item|
+  unless item =~ /^\.\.?$/ || item == "common"
+    require_relative ".project/#{item}"
+  end
+end
 
 c = Common.new
 

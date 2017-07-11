@@ -116,7 +116,7 @@
    (fn [{:keys [state]}]
      (swap! state update :bound-count inc))})
 
-(r/defc App
+(r/defc- App "The app."
   {:render
    (fn []
      [:div {}
