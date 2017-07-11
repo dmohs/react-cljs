@@ -1,5 +1,5 @@
 (ns dmohs.react
-  (:require-macros [dmohs.react :refer [defc]])
+  (:require-macros [dmohs.react :refer [defc defc-]])
   (:require [dmohs.react.core :as core]))
 
 
