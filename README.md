@@ -29,7 +29,7 @@ to start Figwheel. When it has finished compiling, open http://localhost:3449/.
 ### Add dependency:
 
 ```cljs
-[dmohs/react "1.2.1+15.5.4-1" :as r]
+[dmohs/react "1.2.2+15.5.4-1" :as r]
 ```
 
 ## Top-Level API

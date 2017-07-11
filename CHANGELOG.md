@@ -1,3 +1,8 @@
+# 1.2.2+15.5.4-1
+
+- Bug fixes.
+- `defc-` for "private" components (Isaac Zarsky). Like `defn-`, these are not enforced in ClojureScript, but provide hints about intent.
+
 # 1.2.0+15.5.4-0
 
 - Also don't convert aria attributes to camel-case since.
