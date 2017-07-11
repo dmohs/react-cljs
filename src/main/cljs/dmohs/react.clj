@@ -38,7 +38,7 @@
                      nil))))))))
 
 (defmacro defc [name doc-string-or-fn-map & [fn-map]]
-          `(define false ~name ~doc-string-or-fn-map ~fn-map))
+  `(define false ~name ~doc-string-or-fn-map ~fn-map))
 
 (defmacro defc- [name doc-string-or-fn-map & [fn-map]]
-          `(define true ~name ~doc-string-or-fn-map ~fn-map))
+  `(define true ~name ~doc-string-or-fn-map ~fn-map))
