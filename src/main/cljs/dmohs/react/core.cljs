@@ -148,7 +148,7 @@
                          (throw
                            (js/Error. (str "Method " k " not found on component "
                                            (get-display-name instance)))))
-              bound-method #(instance k)]
+              bound-method (fn [& args] (apply instance k args))]
           (aset instance bound-method-name bound-method)
           bound-method))))
 
