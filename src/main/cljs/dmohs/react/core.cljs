@@ -1,11 +1,9 @@
 (ns dmohs.react.core
   (:require-macros [dmohs.react.core :refer [if-not-optimized]])
   (:require
-   cljsjs.create-react-class
-   [cljsjs.react :as React]
-   [cljsjs.react.dom :as ReactDOM]
    clojure.string
-   [dmohs.react.common :as common]))
+   [dmohs.react.common :as common]
+   dmohs.react.deps))
 
 
 (defn get-display-name [instance]
@@ -117,7 +115,7 @@
                             x))
                         children)]
       (if (or tag? (not (aget (.-prototype type) "react-cljs?")))
-        (apply React.createElement type (clj->js (camel-case-keys props)) children)
+        (apply js/React.createElement type (clj->js (camel-case-keys props)) children)
         (let [js-props #js{}
               {:keys [ref key]} props
               default-props (aget (.-constructor (.-prototype type)) "defaultProps")
@@ -130,7 +128,7 @@
             nil)
           (when ref (aset js-props "ref" ref))
           (when key (aset js-props "key" key))
-          (apply React.createElement type js-props children))))))
+          (apply js/React.createElement type js-props children))))))
 
 
 (defn call [k instance & args]
@@ -371,6 +369,44 @@
        (.apply (aget proto (name k)) this (to-array args))))))
 
 
+(defn- extend-react-class-with-ifn [react-class]
+  (extend-type react-class
+    IFn
+    (-invoke ([this method-keyword] (call method-keyword this))
+             ([this method-keyword a] (call method-keyword this a))
+             ([this method-keyword a b] (call method-keyword this a b))
+             ([this method-keyword a b c] (call method-keyword this a b c))
+             ([this method-keyword a b c d] (call method-keyword this a b c d))
+             ([this method-keyword a b c d e] (call method-keyword this a b c d e))
+             ([this method-keyword a b c d e f] (call method-keyword this a b c d e f))
+             ([this method-keyword a b c d e f g] (call method-keyword this a b c d e f g))
+             ([this method-keyword a b c d e f g h] (call method-keyword this a b c d e f g h))
+             ([this method-keyword a b c d e f g h i]
+              (call method-keyword this a b c d e f g h i))
+             ([this method-keyword a b c d e f g h i j]
+              (call method-keyword this a b c d e f g h i j))
+             ([this method-keyword a b c d e f g h i j k]
+              (call method-keyword this a b c d e f g h i j k))
+             ([this method-keyword a b c d e f g h i j k l]
+              (call method-keyword this a b c d e f g h i j k l))
+             ([this method-keyword a b c d e f g h i j k l m]
+              (call method-keyword this a b c d e f g h i j k l m))
+             ([this method-keyword a b c d e f g h i j k l m n]
+              (call method-keyword this a b c d e f g h i j k l m n))
+             ([this method-keyword a b c d e f g h i j k l m n o]
+              (call method-keyword this a b c d e f g h i j k l m n o))
+             ([this method-keyword a b c d e f g h i j k l m n o p]
+              (call method-keyword this a b c d e f g h i j k l m n o p))
+             ([this method-keyword a b c d e f g h i j k l m n o p q]
+              (call method-keyword this a b c d e f g h i j k l m n o p q))
+             ([this method-keyword a b c d e f g h i j k l m n o p q r]
+              (call method-keyword this a b c d e f g h i j k l m n o p q r))
+             ([this method-keyword a b c d e f g h i j k l m n o p q r s]
+              (call method-keyword this a b c d e f g h i j k l m n o p q r s))
+             ([this method-keyword a b c d e f g h i j k l m n o p q r s rest]
+              (apply call method-keyword this a b c d e f g h i j k l m n o p q r s rest)))))
+
+
 (defn create-class [fn-map]
   (let [class-def #js{:autobind false :react-cljs? true}]
     (doseq [[k f] fn-map]
@@ -382,32 +418,28 @@
                 f
                 (create-camel-cased-react-method-wrapper k)))))
     (let [class (js/createReactClass class-def)]
-      (extend-type class
-        IFn
-        (-invoke ([this method-keyword & args]
-                  (apply call method-keyword this args))))
+      (extend-react-class-with-ifn class)
       class)))
 
-
 (defn create-factory [type]
-  (React.createFactory type))
+  (js/React.createFactory type))
 
 
 (defn valid-element? [x]
-  (React.isValidElement x))
+  (js/React.isValidElement x))
 
 
 (defn render
-  ([element container] (ReactDOM.render element container))
-  ([element container callback] (ReactDOM.render element container callback)))
+  ([element container] (js/ReactDOM.render element container))
+  ([element container callback] (js/ReactDOM.render element container callback)))
 
 
 (defn unmount-component-at-node [container]
-  (ReactDOM.unmountComponentAtNode container))
+  (js/ReactDOM.unmountComponentAtNode container))
 
 
 (defn find-dom-node [instance]
-  (ReactDOM.findDOMNode instance))
+  (js/ReactDOM.findDOMNode instance))
 
 
 ;; (defn pass-to [component property & prepended-arg-fns]

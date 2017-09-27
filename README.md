@@ -29,8 +29,16 @@ to start Figwheel. When it has finished compiling, open http://localhost:3449/.
 ### Add dependency:
 
 ```cljs
-[dmohs/react "1.2.4+15.5.4-1" :as r]
+[dmohs/react "1.3.0"] ; [1]
 ```
+**or**
+```cljs
+[dmohs/react "1.2.4+15.5.4-1"] ; [2]
+```
+
+[1] This version does not depend on React. You must bundle it separately (and include `create-react-class`) using Webpack or similar. You can get an example of this by reading the [scripts](https://github.com/dmohs/react-cljs/blob/master/.project/devserver.rb) used to start the dev environment.
+
+[2] This version bundles the specified version of React via [CLJSJS](http://cljsjs.github.io/).
 
 ## Top-Level API
 

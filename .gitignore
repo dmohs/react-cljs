@@ -4,4 +4,5 @@
 /.rsync.log
 /pom.xml*
 /react.iml
+/src/static/webpack-deps.*
 /target/
