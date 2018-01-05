@@ -9,7 +9,7 @@ def build_docs_folder()
       -w /w
       -v jars:/root/.m2
       dmohs/clojurescript
-      lein with-profile +docs cljsbuild once
+      lein with-profile +unbundled,+docs cljsbuild once
   }
   at_exit { c.run_inline %W{docker rm -f #{cname}} }
   env.source_file_paths.each do |src_path|
