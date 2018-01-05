@@ -116,6 +116,14 @@
    (fn [{:keys [state]}]
      (swap! state update :bound-count inc))})
 
+(r/defc ListUnwrapping
+  {:render
+   (fn [{:keys [this]}]
+     [:div {}
+      [:h2 {} (r/get-display-name this)]
+      (for [i (range 3)]
+        (map (fn [j] [:div {} "I am div " i ", " j]) (range 3)))])})
+
 (r/defc- App "The app."
   {:render
    (fn []
@@ -131,7 +139,8 @@
       [ComponentWithRefs]
       [ComponentWithSize]
       [ComponentWithReactWeirdness]
-      [FunWithEventHandlers]])})
+      [FunWithEventHandlers]
+      [ListUnwrapping]])})
 
 (defn render-application []
   (r/render

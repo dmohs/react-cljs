@@ -101,34 +101,35 @@
   [type-or-vec props & children]
   (if (vector? type-or-vec)
     (apply create-element type-or-vec)
-    (let [tag? (keyword? type-or-vec)
-          type (if tag? (name type-or-vec) type-or-vec)
-          children (reduce (fn [r c]
-                             (if (seq? c)
-                               (vec (concat r c))
-                               (conj r c)))
-                           []
-                           children)
-          children (map (fn [x]
-                          (if (vector? x)
-                            (apply create-element x)
-                            x))
-                        children)]
-      (if (or tag? (not (aget (.-prototype type) "react-cljs?")))
-        (apply js/React.createElement type (clj->js (camel-case-keys props)) children)
-        (let [js-props #js{}
-              {:keys [ref key]} props
-              default-props (aget (.-constructor (.-prototype type)) "defaultProps")
-              props (merge (when default-props (aget default-props "cljsDefault"))
-                           (dissoc props :ref :key))]
-          (aset js-props "cljs" props)
-          (if-not-optimized
-            (aset js-props "js"
-                  (clj->js (merge {:.ns (aget (.-prototype type) "namespace")} props)))
-            nil)
-          (when ref (aset js-props "ref" ref))
-          (when key (aset js-props "key" key))
-          (apply js/React.createElement type js-props children))))))
+    (letfn [(flatten-children [children]
+                              (reduce
+                               (fn [r c]
+                                 (if (seq? c) (vec (concat r (flatten-children c))) (conj r c)))
+                               []
+                               children))]
+      (let [tag? (keyword? type-or-vec)
+            type (if tag? (name type-or-vec) type-or-vec)
+            children (flatten-children children)
+            children (map (fn [x]
+                            (if (vector? x)
+                              (apply create-element x)
+                              x))
+                          children)]
+        (if (or tag? (not (aget (.-prototype type) "react-cljs?")))
+          (apply js/React.createElement type (clj->js (camel-case-keys props)) children)
+          (let [js-props #js{}
+                {:keys [ref key]} props
+                default-props (aget (.-constructor (.-prototype type)) "defaultProps")
+                props (merge (when default-props (aget default-props "cljsDefault"))
+                             (dissoc props :ref :key))]
+            (aset js-props "cljs" props)
+            (if-not-optimized
+              (aset js-props "js"
+                    (clj->js (merge {:.ns (aget (.-prototype type) "namespace")} props)))
+              nil)
+            (when ref (aset js-props "ref" ref))
+            (when key (aset js-props "key" key))
+            (apply js/React.createElement type js-props children)))))))
 
 
 (defn call [k instance & args]
