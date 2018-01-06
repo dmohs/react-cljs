@@ -124,6 +124,20 @@
       (for [i (range 3)]
         (map (fn [j] [:div {} "I am div " i ", " j]) (range 3)))])})
 
+(def BarComponent (fn [props] (.log js/console "constructor?" props)))
+
+(js/goog.inherits BarComponent js/React.Component)
+
+(set! (.. BarComponent -prototype -constructor)
+  (fn [props]
+    (.log js/console props)))
+(set! (.. BarComponent -prototype -render)
+  (fn []
+    (this-as
+     this
+     (.log js/console "render") nil)))
+
+
 (r/defc- App "The app."
   {:render
    (fn []

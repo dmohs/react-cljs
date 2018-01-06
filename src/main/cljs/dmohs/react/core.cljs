@@ -2,6 +2,7 @@
   (:require-macros [dmohs.react.core :refer [if-not-optimized]])
   (:require
    clojure.string
+   clojure.walk
    [dmohs.react.common :as common]
    dmohs.react.deps))
 
@@ -97,7 +98,7 @@
    m))
 
 
-(defn create-element
+#_(defn create-element
   [type-or-vec props & children]
   (if (vector? type-or-vec)
     (apply create-element type-or-vec)
@@ -130,6 +131,53 @@
             (when ref (aset js-props "ref" ref))
             (when key (aset js-props "key" key))
             (apply js/React.createElement type js-props children)))))))
+
+
+(defn- cljs-react-element? [x]
+  (when-let [prototype (.-prototype x)]
+    (aget prototype "react-cljs?")))
+
+(declare create-element)
+
+(defn- convert-children [children]
+  (clojure.walk/postwalk
+   (fn [child]
+     (if (and (sequential? child) (not (empty? child)))
+       (create-element child)
+       child))
+   children))
+
+(defn- create-cljs-react-element [class props children]
+  (let [js-props #js{}
+        {:keys [ref key]} props
+        default-props (aget (.-constructor (.-prototype class)) "defaultProps")
+        props (merge (when default-props (aget default-props "cljsDefault"))
+                     (dissoc props :ref :key))]
+    (aset js-props "cljs" props)
+    (if-not-optimized
+      (aset js-props "js"
+            (clj->js (merge {:.ns (aget (.-prototype class) "namespace")} props)))
+      nil)
+    (when ref (aset js-props "ref" ref))
+    (when key (aset js-props "key" key))
+    (apply js/React.createElement class js-props (convert-children children))))
+
+(defn create-element
+  ([x]
+   (.trace js/console "creating element " x)
+   (if (coll? x)
+     (apply create-element x)
+     (create-element x nil)))
+  ([x props & children]
+   (cond
+     (keyword? x)
+     (apply js/React.createElement (name x) (clj->js props) (convert-children children))
+     (fn? x)
+     (apply js/React.createElement x (clj->js props) (convert-children children))
+     (cljs-react-element? x)
+     (create-cljs-react-element x props children)
+     :else
+     x)))
 
 
 (defn call [k instance & args]
