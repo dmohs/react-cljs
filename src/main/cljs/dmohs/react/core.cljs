@@ -139,14 +139,6 @@
 
 (declare create-element)
 
-(defn- convert-children [children]
-  (clojure.walk/postwalk
-   (fn [child]
-     (if (and (sequential? child) (not (empty? child)))
-       (create-element child)
-       child))
-   children))
-
 (defn- create-cljs-react-element [class props children]
   (let [js-props #js{}
         {:keys [ref key]} props
@@ -160,24 +152,30 @@
       nil)
     (when ref (aset js-props "ref" ref))
     (when key (aset js-props "key" key))
-    (apply js/React.createElement class js-props (convert-children children))))
+    (apply js/React.createElement class js-props (map create-element children))))
 
 (defn create-element
   ([x]
-   (.trace js/console "creating element " x)
    (if (coll? x)
      (apply create-element x)
      (create-element x nil)))
   ([x props & children]
-   (cond
-     (keyword? x)
-     (apply js/React.createElement (name x) (clj->js props) (convert-children children))
-     (fn? x)
-     (apply js/React.createElement x (clj->js props) (convert-children children))
-     (cljs-react-element? x)
-     (create-cljs-react-element x props children)
-     :else
-     x)))
+   (.log js/console "creating element 1" x  "2" props "3" children)
+   (let [e
+         (cond
+           (coll? x)
+           (clj->js (map create-element (concat [x props] children)))
+           (keyword? x)
+           (apply js/React.createElement (name x) (clj->js (camel-case-keys props))
+             (map create-element children))
+           (cljs-react-element? x)
+           (create-cljs-react-element x props children)
+           (fn? x)
+           (apply js/React.createElement x (clj->js props) (map create-element children))
+           :else
+           x)]
+     (.log js/console e)
+     e)))
 
 
 (defn call [k instance & args]

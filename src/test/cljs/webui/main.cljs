@@ -121,8 +121,13 @@
    (fn [{:keys [this]}]
      [:div {}
       [:h2 {} (r/get-display-name this)]
+      [:div {}
+       ;; This doesn't work right now.
+       (list "child 1" "child 2")]
       (for [i (range 3)]
-        (map (fn [j] [:div {} "I am div " i ", " j]) (range 3)))])})
+        [:div {:key (str i)} "I am first div " i])
+      (for [i (range 2)]
+        (map (fn [j] [:div {:key (str i ":" j)} "I am div matrix " i ", " j]) (range 3)))])})
 
 (def BarComponent (fn [props] (.log js/console "constructor?" props)))
 
