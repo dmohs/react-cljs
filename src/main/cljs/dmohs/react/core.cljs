@@ -159,22 +159,22 @@
    (if (coll? x)
      (apply create-element x)
      (create-element x nil)))
-  ([x props & children]
-   (.log js/console "creating element 1" x  "2" props "3" children)
+  ([x maybe-props & children]
+   (js/console.log "creating element 1" x  "2" maybe-props "3" children)
    (let [e
          (cond
            (coll? x)
-           (clj->js (map create-element (concat [x props] children)))
+           (clj->js (map create-element (concat [x maybe-props] children)))
            (keyword? x)
-           (apply js/React.createElement (name x) (clj->js (camel-case-keys props))
+           (apply js/React.createElement (name x) (clj->js (camel-case-keys maybe-props))
              (map create-element children))
            (cljs-react-element? x)
-           (create-cljs-react-element x props children)
+           (create-cljs-react-element x maybe-props children)
            (fn? x)
-           (apply js/React.createElement x (clj->js props) (map create-element children))
+           (apply js/React.createElement x (clj->js maybe-props) (map create-element children))
            :else
-           x)]
-     (.log js/console e)
+           (into [x maybe-props] children))]
+     (.log js/console x " into " e)
      e)))
 
 

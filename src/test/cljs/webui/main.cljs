@@ -122,8 +122,9 @@
      [:div {}
       [:h2 {} (r/get-display-name this)]
       [:div {}
-       ;; This doesn't work right now.
-       (list "child 1" "child 2")]
+       (list "child 1 " ["child 1a "] "child 2 ")
+       "child 3 "
+       [:span {} "child 4"]]
       (for [i (range 3)]
         [:div {:key (str i)} "I am first div " i])
       (for [i (range 2)]
