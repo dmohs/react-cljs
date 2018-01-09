@@ -164,13 +164,18 @@
      (clj->js (map create-element (concat [x maybe-props] children)))
      (keyword? x)
      (apply js/React.createElement (name x) (clj->js (camel-case-keys maybe-props))
-            (map create-element children))
+            (flatten (map create-element children)))
      (cljs-react-element? x)
      (create-cljs-react-element x maybe-props children)
      (fn? x)
      (apply js/React.createElement x (clj->js maybe-props) (map create-element children))
      :else
-     (into [x (when maybe-props (create-element maybe-props))] (map create-element children)))))
+     (cond
+       (not-empty children)
+       (concat [x (when maybe-props (create-element maybe-props))] (map create-element children))
+       (some? maybe-props)
+       [x (create-element maybe-props)]
+       :else x))))
 
 
 (defn call [k instance & args]
@@ -331,9 +336,7 @@
                                       (.log js/window.console (.-stack e))
                                       (create-element :div {:style {:color "red"}}
                                                       "Render failed. See console for details.")))]
-                     (if (vector? rendered)
-                       (apply create-element rendered)
-                       rendered))))]
+                     (create-element rendered))))]
     (assoc fn-map :render wrapped)))
 
 
