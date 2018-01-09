@@ -2,7 +2,6 @@
   (:require-macros [dmohs.react.core :refer [if-not-optimized]])
   (:require
    clojure.string
-   clojure.walk
    [dmohs.react.common :as common]
    dmohs.react.deps))
 
@@ -160,22 +159,18 @@
      (apply create-element x)
      (create-element x nil)))
   ([x maybe-props & children]
-   (js/console.log "creating element 1" x  "2" maybe-props "3" children)
-   (let [e
-         (cond
-           (coll? x)
-           (clj->js (map create-element (concat [x maybe-props] children)))
-           (keyword? x)
-           (apply js/React.createElement (name x) (clj->js (camel-case-keys maybe-props))
-             (map create-element children))
-           (cljs-react-element? x)
-           (create-cljs-react-element x maybe-props children)
-           (fn? x)
-           (apply js/React.createElement x (clj->js maybe-props) (map create-element children))
-           :else
-           (into [x (when maybe-props (create-element maybe-props))] (map create-element children)))]
-     (.log js/console x " into " e)
-     e)))
+   (cond
+     (coll? x)
+     (clj->js (map create-element (concat [x maybe-props] children)))
+     (keyword? x)
+     (apply js/React.createElement (name x) (clj->js (camel-case-keys maybe-props))
+            (map create-element children))
+     (cljs-react-element? x)
+     (create-cljs-react-element x maybe-props children)
+     (fn? x)
+     (apply js/React.createElement x (clj->js maybe-props) (map create-element children))
+     :else
+     (into [x (when maybe-props (create-element maybe-props))] (map create-element children)))))
 
 
 (defn call [k instance & args]
