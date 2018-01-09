@@ -122,7 +122,9 @@
      [:div {}
       [:h2 {} (r/get-display-name this)]
       [:div {}
-       (list "child 1 " ["child 1a "] "child 2 ")
+       [:div {}
+        ["child 1 " [:span {} "child 2"]]]
+       (list "child 1 " ["child 1a "] "child 2 " [:span {} "child 2a "])
        "child 3 "
        [:span {} "child 4"]]
       (for [i (range 3)]

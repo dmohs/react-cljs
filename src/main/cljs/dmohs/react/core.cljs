@@ -173,7 +173,7 @@
            (fn? x)
            (apply js/React.createElement x (clj->js maybe-props) (map create-element children))
            :else
-           (into [x maybe-props] children))]
+           (into [x (when maybe-props (create-element maybe-props))] (map create-element children)))]
      (.log js/console x " into " e)
      e)))
 
