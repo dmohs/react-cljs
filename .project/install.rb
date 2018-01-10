@@ -2,7 +2,8 @@ require_relative "common/common"
 
 def install(local, *args)
   c = Common.new
-  if not local
+  install_type = args.shift
+  unless local
     jars_volume_name = args.shift
     if jars_volume_name.nil?
       c.error "Missing docker volume name for storing JARS (e.g. \"jars\")"
@@ -21,7 +22,7 @@ def install(local, *args)
     -w /w
     -v #{vol}
     clojure:lein-alpine
-    lein install
+    lein with-profile #{install_type} install
   }
   at_exit { c.run_inline %W{docker rm -f #{cname}} }
   env.source_file_paths.each do |src_path|
@@ -35,12 +36,12 @@ end
 
 Common.register_command({
   :invocation => "local-install",
-  :description => "Installs this jar into the local system repository (#{ENV["HOME"]}/.m2).",
+  :description => "Args:  [ bundled | unbundled ]\nInstalls this jar into the local system repository (#{ENV["HOME"]}/.m2).",
   :fn => Proc.new { |*args| install(true, *args) }
 })
 
 Common.register_command({
   :invocation => "docker-install",
-  :description => "Installs this jar into the named docker volume at /root/.m2.",
+  :description => "Args:  [ bundled | unbundled ] [ docker volume name ]\nInstalls this jar into the named docker volume at /root/.m2.",
   :fn => Proc.new { |*args| install(false, *args) }
 })
