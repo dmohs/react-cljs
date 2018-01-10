@@ -133,8 +133,9 @@
 
 
 (defn- cljs-react-element? [x]
-  (when-let [prototype (.-prototype x)]
-    (aget prototype "react-cljs?")))
+  (when x
+    (when-let [prototype (.-prototype x)]
+      (aget prototype "react-cljs?"))))
 
 (declare create-element)
 
@@ -156,26 +157,28 @@
 (defn create-element
   ([x]
    (if (coll? x)
-     (apply create-element x)
+     (when (seq x)
+       (apply create-element x))
      (create-element x nil)))
   ([x maybe-props & children]
-   (cond
-     (coll? x)
-     (clj->js (map create-element (concat [x maybe-props] children)))
-     (keyword? x)
-     (apply js/React.createElement (name x) (clj->js (camel-case-keys maybe-props))
-            (flatten (map create-element children)))
-     (cljs-react-element? x)
-     (create-cljs-react-element x maybe-props children)
-     (fn? x)
-     (apply js/React.createElement x (clj->js maybe-props) (map create-element children))
-     :else
+   (let [create-elements #(map create-element (filter some? %))]
      (cond
-       (not-empty children)
-       (concat [x (when maybe-props (create-element maybe-props))] (map create-element children))
-       (some? maybe-props)
-       [x (create-element maybe-props)]
-       :else x))))
+       (coll? x)
+       (clj->js (create-elements (concat [x maybe-props] children)))
+       (keyword? x)
+       (apply js/React.createElement (name x) (clj->js (camel-case-keys maybe-props))
+              (flatten (create-elements children)))
+       (cljs-react-element? x)
+       (create-cljs-react-element x maybe-props children)
+       (fn? x)
+       (apply js/React.createElement x (clj->js maybe-props) (create-elements children))
+       :else
+       (cond
+         (seq children)
+         (concat [x (when maybe-props (create-element maybe-props))] (create-elements children))
+         (some? maybe-props)
+         [x (create-element maybe-props)]
+         :else x)))))
 
 
 (defn call [k instance & args]
