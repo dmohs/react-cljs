@@ -128,9 +128,9 @@
        "child 3 "
        [:span {} "child 4"]]
       (for [i (range 3)]
-        [:div {:key (str i)} "I am first div " i])
+        [:div {} "I am first div " i])
       (for [i (range 2)]
-        (map (fn [j] [:div {:key (str i ":" j)} "I am div matrix " i ", " j]) (range 3)))])})
+        (map (fn [j] [:div {} "I am div matrix " i ", " j]) (range 3)))])})
 
 (def BarComponent (fn [props] (.log js/console "constructor?" props)))
 
