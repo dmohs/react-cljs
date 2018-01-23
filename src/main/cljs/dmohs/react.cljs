@@ -34,7 +34,7 @@
 
 
 (defn valid-element?
-  "See: https://facebook.github.io/react/docs/top-level-api.html#react.isvalidelement"
+  "See: https://reactjs.org/docs/react-api.html#isvalidelement"
   [x]
   (core/valid-element? x))
 
@@ -57,9 +57,15 @@
 
 
 (defn find-dom-node
-  "See: https://facebook.github.io/react/docs/top-level-api.html#reactdom.finddomnode"
+  "See: https://reactjs.org/docs/react-dom.html#finddomnode"
   [instance]
   (core/find-dom-node instance))
+
+
+(defn create-portal
+  "See: https://reactjs.org/docs/portals.html"
+  [child container]
+  (core/create-portal (create-element child) container))
 
 
 (defn call

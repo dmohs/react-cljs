@@ -152,7 +152,10 @@
           bound-method))))
 
 (defn after-update [instance f & args]
-  (.setState instance #js{} (fn [] (apply f args))))
+  (.forceUpdate instance (fn [] (apply f args))))
+
+(defn force-update [instance]
+  (.forceUpdate instance))
 
 (defn- bind-prop-atom
   ([this prop-key] (bind-prop-atom this prop-key prop-key))
@@ -171,6 +174,7 @@
 (defn- default-arg-map [this]
   {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)
    :after-update (partial after-update this)
+   :force-update (force-update this)
    :abind (partial bind-prop-atom this)})
 
 
@@ -441,6 +445,9 @@
 
 (defn find-dom-node [instance]
   (js/ReactDOM.findDOMNode instance))
+
+(defn create-portal [child container]
+  (js/ReactDOM.createPortal child container))
 
 
 ;; (defn pass-to [component property & prepended-arg-fns]
