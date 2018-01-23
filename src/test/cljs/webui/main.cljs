@@ -123,7 +123,7 @@
       [:h2 {} (r/get-display-name this)]
       [:div {}
        [:div {}
-        ["child 1 " [:span {} "child 2"]]]
+        ["child 1^1 " [:span {} "child 2^1"]]]
        (list "child 1 " ["child 1a "] "child 2 " [:span {} "child 2a "])
        "child 3 "
        [:span {} "child 4"]]

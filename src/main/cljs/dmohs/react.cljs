@@ -16,7 +16,7 @@
 
 (defn create-element
   "See: https://github.com/dmohs/react-cljs#reactcreateelement"
-  ([type-or-vec] (create-element type-or-vec nil))
+  ([type-or-vec] (core/create-element type-or-vec))
   ([type-or-vec props & children]
      (apply core/create-element type-or-vec props children)))
 
