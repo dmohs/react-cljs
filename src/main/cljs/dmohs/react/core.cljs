@@ -174,7 +174,7 @@
 (defn- default-arg-map [this]
   {:this this :props (props this) :state (state this) :refs (refs this) :locals (locals this)
    :after-update (partial after-update this)
-   :force-update (force-update this)
+   :force-update #(force-update this)
    :abind (partial bind-prop-atom this)})
 
 
