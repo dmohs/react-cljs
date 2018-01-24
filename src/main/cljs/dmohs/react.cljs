@@ -38,6 +38,7 @@
   [x]
   (core/valid-element? x))
 
+
 (defn force-update
   "Causes an update. If given a callback, calls it after the update completes."
   ([instance] (core/force-update instance))
