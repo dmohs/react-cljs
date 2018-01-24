@@ -152,10 +152,13 @@
           bound-method))))
 
 (defn after-update [instance f & args]
-  (.forceUpdate instance (fn [] (apply f args))))
+  (.setState instance #js{} (fn [] (apply f args))))
 
-(defn force-update [instance]
-  (.forceUpdate instance))
+(defn force-update
+  ([instance]
+   (.forceUpdate instance))
+  ([instance f]
+   (.forceUpdate instance f)))
 
 (defn- bind-prop-atom
   ([this prop-key] (bind-prop-atom this prop-key prop-key))

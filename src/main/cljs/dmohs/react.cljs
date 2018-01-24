@@ -92,6 +92,12 @@
   [instance f & args]
   (apply core/after-update instance f args))
 
+(defn force-update
+  "Causes an update. If given a callback, calls it after the update completes."
+  ([instance] (core/force-update instance))
+  ([instance f]
+   (core/force-update instance f)))
+
 (defn method
   "Returns the method with the given key. Subsequent calls return the same (identical) function."
   [instance method-key]
