@@ -124,6 +124,15 @@
       (for [i (range 3)]
         (map (fn [j] [:div {} "I am div " i ", " j]) (range 3)))])})
 
+(r/defc Portals
+  {:render
+   (fn []
+     (r/create-portal
+      [:div {}
+       [:h2 {} "Portal"]
+       "I am a portal."]
+      (.getElementById js/document "portal-container")))})
+
 (r/defc- App "The app."
   {:render
    (fn []
@@ -140,7 +149,8 @@
       [ComponentWithSize]
       [ComponentWithReactWeirdness]
       [FunWithEventHandlers]
-      [ListUnwrapping]])})
+      [ListUnwrapping]
+      [Portals]])})
 
 (defn render-application []
   (r/render

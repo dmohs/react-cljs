@@ -72,10 +72,7 @@
 (defn create-portal
   "See: https://reactjs.org/docs/portals.html"
   [child container]
-  (core/create-portal (if (seqable? child)
-                        (apply create-element child)
-                        (create-element child))
-                      container))
+  (core/create-portal (create-element child) container))
 
 
 (defn call
